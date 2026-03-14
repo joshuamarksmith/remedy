@@ -104,10 +104,11 @@ export const BACChart = memo(function BACChart({
       ctx.fillText(step.toFixed(2), vp.pad.left - 6, y + 3);
     }
 
-    // Time labels
+    // Time labels — pick step so labels don't overlap
     const totalMs = vp.maxTime - vp.minTime;
     const hourMs = 60 * 60 * 1000;
-    const timeStep = totalMs > 6 * hourMs ? 2 * hourMs : hourMs;
+    const totalHours = totalMs / hourMs;
+    const timeStep = totalHours > 12 ? 4 * hourMs : totalHours > 6 ? 2 * hourMs : hourMs;
     const firstHour = Math.ceil(vp.minTime / timeStep) * timeStep;
 
     ctx.fillStyle = 'rgba(255,255,255,0.25)';

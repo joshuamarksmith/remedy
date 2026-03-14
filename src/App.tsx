@@ -158,7 +158,7 @@ function App() {
       <header className="px-4 pt-4 pb-2">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold tracking-tight text-text-primary">
-            remedy
+            <span className="text-accent-teal">rem</span>edy
           </h1>
           <span className="text-sm text-text-muted">{todayString}</span>
         </div>
