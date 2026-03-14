@@ -116,18 +116,38 @@ export function findSoberTime(drinks: Drink[], profile: UserProfile): number {
 }
 
 /**
- * Parse a bedtime "HH:MM" string into the next occurrence as a unix timestamp.
+ * Find the most relevant bedtime occurrence relative to now.
+ *
+ * If you're within 4 hours after bedtime (stayed up late / crossed midnight),
+ * uses that recent bedtime. Otherwise uses the next upcoming one.
  */
 function nextBedtime(bedtime: string): number {
   const [h, m] = bedtime.split(':').map(Number);
-  const now = new Date();
-  const bed = new Date(now);
-  bed.setHours(h, m, 0, 0);
-  // If bedtime already passed today, it means tonight (could be past midnight)
-  if (bed.getTime() <= now.getTime()) {
-    bed.setDate(bed.getDate() + 1);
+  const now = Date.now();
+  const fourHoursMs = 4 * 60 * 60 * 1000;
+
+  // Generate yesterday, today, and tomorrow's bedtime
+  const base = new Date(now);
+  const candidates: number[] = [];
+  for (const offset of [-1, 0, 1]) {
+    const bed = new Date(base);
+    bed.setDate(bed.getDate() + offset);
+    bed.setHours(h, m, 0, 0);
+    candidates.push(bed.getTime());
   }
-  return bed.getTime();
+
+  // Priority 1: recently-passed bedtime (within 4h) — you stayed up past it
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    const ts = candidates[i];
+    if (ts <= now && now - ts <= fourHoursMs) return ts;
+  }
+
+  // Priority 2: nearest upcoming bedtime
+  for (const ts of candidates) {
+    if (ts > now) return ts;
+  }
+
+  return candidates[2]; // fallback
 }
 
 /**
@@ -173,18 +193,16 @@ export function calculateBACState(
   const remSafeAtTimestamp = soberAtTimestamp + REM_SAFE_BUFFER_MS;
   const timeToREMSafeMs = Math.max(0, remSafeAtTimestamp - now);
 
-  // REM impact: based on effective remaining dose, not total consumed
-  // "If you sleep now" = impact from alcohol currently in your system
-  const currentDose = effectiveDoseGPerKg(currentBAC, profile.sex);
-  const { minutes: remReductionMinutes, percent: remPercentReduction } = remImpact(currentDose);
-
-  // Sleep quality: will you be REM-safe by bedtime?
-  // "Safe" = sober + 1hr buffer before bedtime. Otherwise check BAC at bedtime.
+  // Sleep quality + REM impact: based on BAC at bedtime
+  // If bedtime already passed (you stayed up late), use now — you could sleep any moment
   const bedtimeTs = nextBedtime(profile.bedtime);
-  const bacAtBedtime = calculateBAC(allDrinks, profile, bedtimeTs);
+  const effectiveBedtime = Math.max(bedtimeTs, now);
+  const bacAtBedtime = calculateBAC(allDrinks, profile, effectiveBedtime);
+  const bedtimeDose = effectiveDoseGPerKg(bacAtBedtime, profile.sex);
+  const { minutes: remReductionMinutes, percent: remPercentReduction } = remImpact(bedtimeDose);
 
   let sleepQuality: SleepQuality = 'safe';
-  if (remSafeAtTimestamp > bedtimeTs) {
+  if (remSafeAtTimestamp > effectiveBedtime) {
     // Won't be REM-safe by bedtime — severity based on BAC at bedtime
     sleepQuality = bacAtBedtime > BAC_THRESHOLD_DANGER ? 'danger' : 'caution';
   }
