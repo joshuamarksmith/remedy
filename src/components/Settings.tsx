@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import type { UserProfile } from '../lib/bac';
 
 const LBS_PER_KG = 2.20462;
@@ -6,10 +6,12 @@ const LBS_PER_KG = 2.20462;
 interface SettingsProps {
   profile: UserProfile;
   onUpdate: (profile: UserProfile) => void;
+  onReset: () => void;
 }
 
-export const Settings = memo(function Settings({ profile, onUpdate }: SettingsProps) {
+export const Settings = memo(function Settings({ profile, onUpdate, onReset }: SettingsProps) {
   const weightLbs = Math.round(profile.weightKg * LBS_PER_KG);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   return (
     <div className="stagger-children space-y-4 py-2">
@@ -92,6 +94,39 @@ export const Settings = memo(function Settings({ profile, onUpdate }: SettingsPr
             Sources: Ebrahim et al. 2013, Colrain et al. 2014, Gardiner et al. 2024
           </p>
         </div>
+      </div>
+
+      {/* Reset App */}
+      <div className="card p-4">
+        <h3 className="text-sm font-medium text-text-secondary mb-2">Reset</h3>
+        {!confirmReset ? (
+          <button
+            onClick={() => setConfirmReset(true)}
+            className="w-full py-2 rounded-lg text-sm font-medium bg-white/5 text-red-400 border border-red-400/20 hover:bg-red-400/10 transition-colors"
+          >
+            Reset app to first-run state
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-red-400">
+              This clears all data (drinks, profile, history) and returns to onboarding. Are you sure?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="flex-1 py-2 rounded-lg text-sm font-medium bg-white/5 text-text-muted border border-transparent"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onReset}
+                className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-500/20 text-red-400 border border-red-400/40"
+              >
+                Yes, reset everything
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

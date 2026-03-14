@@ -7,7 +7,7 @@ import {
   type Drink,
   type BACState,
 } from './lib/bac';
-import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded } from './lib/storage';
+import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp } from './lib/storage';
 import { Onboarding } from './components/Onboarding';
 import type { UserProfile } from './lib/bac';
 import { STATUS_TEXT_CLASS, STATUS_BORDER_CLASS, formatDrinkCount } from './lib/theme';
@@ -447,7 +447,7 @@ function App() {
         )}
 
         {activeTab === 'log' && <DrinkLog drinks={drinks} onRemove={removeDrink} />}
-        {activeTab === 'settings' && <Settings profile={profile} onUpdate={updateProfile} />}
+        {activeTab === 'settings' && <Settings profile={profile} onUpdate={updateProfile} onReset={() => { resetApp(); window.location.reload(); }} />}
       </main>
 
       {/* Bottom Nav */}
