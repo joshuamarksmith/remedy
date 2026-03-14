@@ -1,0 +1,16 @@
+{
+  "name": "Remedy",
+  "short_name": "Remedy",
+  "description": "Track alcohol consumption and its impact on your REM sleep",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
