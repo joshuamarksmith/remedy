@@ -41,8 +41,10 @@ function App() {
   const [customAmount, setCustomAmount] = useState<string>('');
   const [drinkPulse, setDrinkPulse] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [tick, setTick] = useState(0); // force re-render every second
   const pulseTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const undoTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Stable hypothetical drinks list
   const hypotheticalDrinksList = useMemo<Drink[]>(
@@ -59,10 +61,11 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Cleanup pulse timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (pulseTimeout.current) clearTimeout(pulseTimeout.current);
+      if (undoTimeout.current) clearTimeout(undoTimeout.current);
     };
   }, []);
 
@@ -105,10 +108,15 @@ function App() {
 
   const addDrink = useCallback(
     (standardDrinks: number = 1) => {
+      const id = generateId();
       updateDrinks((prev) => [
         ...prev,
-        { id: generateId(), timestamp: Date.now(), standardDrinks },
+        { id, timestamp: Date.now(), standardDrinks },
       ]);
+
+      setLastAddedId(id);
+      if (undoTimeout.current) clearTimeout(undoTimeout.current);
+      undoTimeout.current = setTimeout(() => setLastAddedId(null), 5000);
 
       setDrinkPulse(true);
       if (pulseTimeout.current) clearTimeout(pulseTimeout.current);
@@ -116,6 +124,14 @@ function App() {
     },
     [updateDrinks]
   );
+
+  const undoLastDrink = useCallback(() => {
+    if (lastAddedId) {
+      updateDrinks((prev) => prev.filter((d) => d.id !== lastAddedId));
+      setLastAddedId(null);
+      if (undoTimeout.current) clearTimeout(undoTimeout.current);
+    }
+  }, [lastAddedId, updateDrinks]);
 
   const clearSession = useCallback(() => {
     updateDrinks(() => []);
@@ -245,6 +261,19 @@ function App() {
                 1 standard drink = 12oz beer · 5oz wine · 1.5oz liquor
               </p>
             </div>
+
+            {/* Undo toast */}
+            {lastAddedId && (
+              <div className="card p-3 flex items-center justify-between animate-fade-in">
+                <span className="text-sm text-text-secondary">Drink added</span>
+                <button
+                  onClick={undoLastDrink}
+                  className="text-sm font-medium text-accent-teal active:scale-95 transition-transform"
+                >
+                  Undo
+                </button>
+              </div>
+            )}
 
             {/* What-If */}
             <div className={`card p-4 transition-all duration-300 ${whatIfMode ? 'border border-accent-blue/20' : ''}`}>
