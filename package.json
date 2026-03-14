@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name=remedy",
+    "deploy:preview": "npm run build && npx wrangler pages deploy dist --project-name=remedy --branch=preview"
   },
   "dependencies": {
     "react": "^19.2.4",
