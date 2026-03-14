@@ -7,6 +7,21 @@ interface OnboardingProps {
 const SLIDES = [
   {
     visual: (
+      <div className="relative w-40 h-36 mx-auto flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-6xl mb-1">🛌</p>
+          <div className="flex items-center justify-center gap-1.5 mt-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-accent-green animate-pulse" />
+            <p className="text-sm text-accent-green font-medium">REM-safe</p>
+          </div>
+        </div>
+      </div>
+    ),
+    title: 'Sleep better tonight',
+    body: 'Alcohol suppresses REM sleep for hours. Remedy tells you exactly when it\'s safe to sleep well.',
+  },
+  {
+    visual: (
       <div className="relative w-36 h-36 mx-auto">
         <svg viewBox="0 0 120 120" className="w-full h-full">
           {/* Outer ring */}
@@ -18,13 +33,13 @@ const SLIDES = [
             className="gauge-ring"
           />
           {/* Center text */}
-          <text x="60" y="55" textAnchor="middle" fill="#f1f5f9" fontSize="24" fontWeight="700" fontFamily="system-ui">0.000</text>
+          <text x="60" y="55" textAnchor="middle" fill="#f1f5f9" fontSize="24" fontWeight="700" fontFamily="system-ui">0.04</text>
           <text x="60" y="72" textAnchor="middle" fill="#94a3b8" fontSize="11" fontFamily="system-ui">BAC</text>
         </svg>
       </div>
     ),
-    title: 'Track your BAC',
-    body: 'Log drinks and see your blood alcohol level update in real time using the Widmark formula.',
+    title: 'Real-time BAC tracking',
+    body: 'Log drinks and watch your blood alcohol level update live, powered by the Widmark formula.',
   },
   {
     visual: (
@@ -35,8 +50,8 @@ const SLIDES = [
         </div>
       </div>
     ),
-    title: 'Protect your REM sleep',
-    body: 'See exactly when your sleep will be clear of alcohol\'s REM-suppressing effects, backed by research.',
+    title: 'Know when to stop',
+    body: 'A live countdown shows exactly when alcohol will stop affecting your sleep — so you can plan your night.',
   },
   {
     visual: (
