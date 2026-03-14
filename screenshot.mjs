@@ -16,12 +16,11 @@ await page.waitForTimeout(1500);
 // Screenshot empty home screen
 await page.screenshot({ path: '/home/user/remedy/assets/screenshot-home.png', fullPage: true });
 
-// Add drinks with slight delays to spread timestamps
-await page.click('text=+ Add Drink');
-await page.waitForTimeout(600);
-await page.click('text=+ Add Drink');
-await page.waitForTimeout(600);
-await page.click('text=+ Add Drink');
+// Add 5 drinks to show realistic BAC
+for (let i = 0; i < 5; i++) {
+  await page.click('text=+ Add Drink');
+  await page.waitForTimeout(400);
+}
 await page.waitForTimeout(1500);
 
 // Home with drinks + chart
