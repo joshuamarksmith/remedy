@@ -1,12 +1,16 @@
 import { memo } from 'react';
 import type { UserProfile } from '../lib/bac';
 
+const LBS_PER_KG = 2.20462;
+
 interface SettingsProps {
   profile: UserProfile;
   onUpdate: (profile: UserProfile) => void;
 }
 
 export const Settings = memo(function Settings({ profile, onUpdate }: SettingsProps) {
+  const weightLbs = Math.round(profile.weightKg * LBS_PER_KG);
+
   return (
     <div className="animate-fade-in space-y-4 py-2">
       <h2 className="text-sm font-medium text-text-secondary mb-3">Your Profile</h2>
@@ -17,16 +21,19 @@ export const Settings = memo(function Settings({ profile, onUpdate }: SettingsPr
         <div className="flex items-center gap-3">
           <input
             type="number"
-            value={profile.weightKg}
-            onChange={(e) =>
-              onUpdate({ ...profile, weightKg: parseFloat(e.target.value) || 75 })
-            }
+            value={weightLbs}
+            onChange={(e) => {
+              const lbs = parseFloat(e.target.value);
+              if (lbs > 0) {
+                onUpdate({ ...profile, weightKg: lbs / LBS_PER_KG });
+              }
+            }}
             className="flex-1 bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50 text-lg"
           />
-          <span className="text-text-muted text-sm">kg</span>
+          <span className="text-text-muted text-sm">lbs</span>
         </div>
         <p className="text-xs text-text-muted mt-1">
-          ≈ {Math.round(profile.weightKg * 2.205)} lbs
+          ≈ {Math.round(profile.weightKg)} kg
         </p>
       </div>
 
