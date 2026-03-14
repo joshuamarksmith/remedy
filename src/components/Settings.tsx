@@ -1,0 +1,102 @@
+import type { UserProfile } from '../lib/bac';
+
+interface SettingsProps {
+  profile: UserProfile;
+  onUpdate: (profile: UserProfile) => void;
+}
+
+export function Settings({ profile, onUpdate }: SettingsProps) {
+  return (
+    <div className="animate-fade-in space-y-4 py-2">
+      <h2 className="text-sm font-medium text-text-secondary mb-3">
+        Your Profile
+      </h2>
+
+      {/* Weight */}
+      <div className="glass p-4">
+        <label className="text-sm text-text-secondary block mb-2">
+          Body Weight
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            value={profile.weightKg}
+            onChange={(e) =>
+              onUpdate({ ...profile, weightKg: parseFloat(e.target.value) || 75 })
+            }
+            className="flex-1 bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-purple/50 text-lg"
+          />
+          <span className="text-text-muted text-sm">kg</span>
+        </div>
+        <p className="text-xs text-text-muted mt-1">
+          ≈ {Math.round(profile.weightKg * 2.205)} lbs
+        </p>
+      </div>
+
+      {/* Sex */}
+      <div className="glass p-4">
+        <label className="text-sm text-text-secondary block mb-2">
+          Biological Sex
+        </label>
+        <div className="flex gap-2">
+          {(['male', 'female'] as const).map((sex) => (
+            <button
+              key={sex}
+              onClick={() => onUpdate({ ...profile, sex })}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                profile.sex === sex
+                  ? 'bg-accent-purple/20 text-accent-purple border border-accent-purple/40'
+                  : 'bg-white/5 text-text-muted border border-transparent'
+              }`}
+            >
+              {sex === 'male' ? 'Male' : 'Female'}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-text-muted mt-2">
+          Affects metabolism rate (Widmark factor: {profile.sex === 'male' ? '0.68' : '0.55'})
+        </p>
+      </div>
+
+      {/* Bedtime */}
+      <div className="glass p-4">
+        <label className="text-sm text-text-secondary block mb-2">
+          Usual Bedtime
+        </label>
+        <input
+          type="time"
+          value={profile.bedtime}
+          onChange={(e) =>
+            onUpdate({ ...profile, bedtime: e.target.value })
+          }
+          className="w-full bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-purple/50 text-lg"
+        />
+      </div>
+
+      {/* Science Info */}
+      <div className="glass p-4">
+        <h3 className="text-sm font-medium text-text-secondary mb-2">
+          How it works
+        </h3>
+        <div className="space-y-2 text-xs text-text-muted">
+          <p>
+            <strong className="text-text-secondary">BAC</strong> is estimated using the
+            Widmark formula, the gold standard in forensic toxicology.
+          </p>
+          <p>
+            <strong className="text-text-secondary">REM impact</strong> is based on
+            Gardiner et al. 2024 meta-analysis of 27 studies: each g/kg of alcohol
+            reduces REM by ~40 minutes.
+          </p>
+          <p>
+            <strong className="text-text-secondary">REM-safe time</strong> = time until
+            BAC reaches zero + 1 hour buffer for sleep architecture to normalize.
+          </p>
+          <p className="pt-1 border-t border-border-glass">
+            Sources: Ebrahim et al. 2013, Colrain et al. 2014, Gardiner et al. 2024
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
