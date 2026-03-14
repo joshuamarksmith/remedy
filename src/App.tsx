@@ -38,9 +38,9 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [whatIfMode, setWhatIfMode] = useState(false);
   const [whatIfDrinks, setWhatIfDrinks] = useState(1);
-  const [customAmount, setCustomAmount] = useState<number | null>(null);
-  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customAmount, setCustomAmount] = useState<string>('');
   const [drinkPulse, setDrinkPulse] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [tick, setTick] = useState(0); // force re-render every second
   const pulseTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -109,8 +109,6 @@ function App() {
         ...prev,
         { id: generateId(), timestamp: Date.now(), standardDrinks },
       ]);
-      setShowCustomInput(false);
-      setCustomAmount(null);
 
       setDrinkPulse(true);
       if (pulseTimeout.current) clearTimeout(pulseTimeout.current);
@@ -118,6 +116,12 @@ function App() {
     },
     [updateDrinks]
   );
+
+  const clearSession = useCallback(() => {
+    updateDrinks(() => []);
+    setShowResetConfirm(false);
+    setWhatIfMode(false);
+  }, [updateDrinks]);
 
   const removeDrink = useCallback(
     (id: string) => updateDrinks((prev) => prev.filter((d) => d.id !== id)),
@@ -199,56 +203,48 @@ function App() {
               hypotheticalDrinks={hypotheticalDrinksList}
             />
 
-            {/* Quick Add */}
-            <button
-              onClick={() => addDrink(1)}
-              className={`w-full card p-4 text-center active:scale-[0.97] transition-all duration-200 border border-accent-teal/20 hover:border-accent-teal/40 ${
-                drinkPulse ? 'ring-2 ring-accent-teal/30 scale-[0.98]' : ''
-              }`}
-            >
-              <span className="text-lg font-medium text-accent-teal">+ Add Drink</span>
-              <span className="block text-xs text-text-muted mt-0.5">
-                1 standard drink · tap to log
-              </span>
-            </button>
+            {/* Add Drinks */}
+            <div className="card p-4 space-y-3">
+              <button
+                onClick={() => addDrink(1)}
+                className={`w-full py-3 rounded-xl text-center active:scale-[0.97] transition-all duration-200 bg-accent-teal/10 border border-accent-teal/20 hover:border-accent-teal/40 ${
+                  drinkPulse ? 'ring-2 ring-accent-teal/30 scale-[0.98]' : ''
+                }`}
+              >
+                <span className="text-lg font-medium text-accent-teal">+ 1 Standard Drink</span>
+              </button>
 
-            {showCustomInput ? (
-              <div className="card p-3 flex items-center gap-2 animate-fade-in">
+              <div className="flex items-center gap-2">
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.5"
-                  min="0.5"
+                  min="0.1"
                   max="10"
-                  placeholder="# drinks"
-                  value={customAmount ?? ''}
-                  onChange={(e) =>
-                    setCustomAmount(e.target.value ? parseFloat(e.target.value) : null)
-                  }
-                  className="flex-1 bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50 text-center text-lg"
-                  autoFocus
+                  placeholder="e.g. 1.5"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                  className="flex-1 bg-white/5 border border-border-glass rounded-xl px-3 py-2.5 text-text-primary outline-none focus:border-accent-teal/50 text-center text-lg placeholder:text-text-muted/50"
                 />
                 <button
-                  onClick={() => customAmount && addDrink(customAmount)}
-                  disabled={!customAmount || customAmount <= 0}
-                  className="bg-accent-teal/20 text-accent-teal px-4 py-2 rounded-lg font-medium disabled:opacity-30"
+                  onClick={() => {
+                    const val = parseFloat(customAmount);
+                    if (val > 0) {
+                      addDrink(val);
+                      setCustomAmount('');
+                    }
+                  }}
+                  disabled={!customAmount || parseFloat(customAmount) <= 0 || isNaN(parseFloat(customAmount))}
+                  className="bg-accent-teal/15 text-accent-teal px-5 py-2.5 rounded-xl font-medium disabled:opacity-30 active:scale-95 transition-all"
                 >
                   Add
                 </button>
-                <button
-                  onClick={() => { setShowCustomInput(false); setCustomAmount(null); }}
-                  className="text-text-muted px-2 py-2"
-                >
-                  ✕
-                </button>
               </div>
-            ) : (
-              <button
-                onClick={() => setShowCustomInput(true)}
-                className="w-full text-center text-sm text-text-muted py-1"
-              >
-                Custom amount...
-              </button>
-            )}
+
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                1 standard drink = 12oz beer · 5oz wine · 1.5oz liquor
+              </p>
+            </div>
 
             {/* What-If */}
             <div className={`card p-4 transition-all duration-300 ${whatIfMode ? 'border border-accent-blue/20' : ''}`}>
@@ -309,6 +305,38 @@ function App() {
               <p className="text-xs text-text-muted mt-1">
                 standard drink{totalDrinks !== 1 ? 's' : ''} logged
               </p>
+
+              {/* Reset */}
+              {drinks.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-border-glass">
+                  {showResetConfirm ? (
+                    <div className="flex items-center justify-between animate-fade-in">
+                      <span className="text-sm text-accent-red">Clear all drinks?</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={clearSession}
+                          className="px-3 py-1.5 rounded-lg bg-accent-red/15 text-accent-red text-sm font-medium active:scale-95 transition-transform"
+                        >
+                          Yes, clear
+                        </button>
+                        <button
+                          onClick={() => setShowResetConfirm(false)}
+                          className="px-3 py-1.5 rounded-lg bg-white/5 text-text-muted text-sm active:scale-95 transition-transform"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowResetConfirm(true)}
+                      className="text-sm text-text-muted hover:text-accent-red transition-colors"
+                    >
+                      Reset session
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
