@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   calculateBACState,
   formatCountdown,
@@ -10,10 +10,12 @@ import {
 import { loadDrinks, saveDrinks, loadProfile, saveProfile } from './lib/storage';
 import type { UserProfile } from './lib/bac';
 import { BACGauge } from './components/BACGauge';
+import { BACChart } from './components/BACChart';
+import { Timeline } from './components/Timeline';
 import { DrinkLog } from './components/DrinkLog';
 import { Settings } from './components/Settings';
 
-type Tab = 'home' | 'log' | 'settings';
+type Tab = 'home' | 'timeline' | 'log' | 'settings';
 
 function App() {
   const [drinks, setDrinks] = useState<Drink[]>(() => loadDrinks());
@@ -26,18 +28,19 @@ function App() {
   const [whatIfDrinks, setWhatIfDrinks] = useState(1);
   const [customAmount, setCustomAmount] = useState<number | null>(null);
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [drinkPulse, setDrinkPulse] = useState(false);
+  const pulseTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Build hypothetical drinks list
+  const hypotheticalDrinksList: Drink[] = whatIfMode
+    ? [{ id: 'hypothetical', timestamp: Date.now(), standardDrinks: whatIfDrinks }]
+    : [];
 
   // Recalculate BAC every second for live countdown
   useEffect(() => {
     const interval = setInterval(() => {
       const hypothetical = whatIfMode
-        ? [
-            {
-              id: 'hypothetical',
-              timestamp: Date.now(),
-              standardDrinks: whatIfDrinks,
-            },
-          ]
+        ? [{ id: 'hypothetical', timestamp: Date.now(), standardDrinks: whatIfDrinks }]
         : [];
       setBacState(calculateBACState(drinks, profile, hypothetical));
     }, 1000);
@@ -64,6 +67,11 @@ function App() {
       setDrinks((prev) => [...prev, newDrink]);
       setShowCustomInput(false);
       setCustomAmount(null);
+
+      // Trigger pulse animation
+      setDrinkPulse(true);
+      if (pulseTimeout.current) clearTimeout(pulseTimeout.current);
+      pulseTimeout.current = setTimeout(() => setDrinkPulse(false), 600);
     },
     []
   );
@@ -111,18 +119,18 @@ function App() {
         {activeTab === 'home' && (
           <div className="animate-fade-in space-y-4">
             {/* BAC Gauge */}
-            <div className="flex justify-center py-4">
+            <div className={`flex justify-center py-4 transition-transform duration-300 ${drinkPulse ? 'scale-105' : ''}`}>
               <BACGauge bac={bacState.currentBAC} quality={bacState.sleepQuality} />
             </div>
 
             {/* REM-Safe Countdown */}
-            <div className={`glass p-4 text-center border ${statusBorderColor}`}>
+            <div className={`glass p-4 text-center border transition-all duration-500 ${statusBorderColor}`}>
               <p className="text-sm text-text-secondary mb-1">
                 {bacState.currentBAC < 0.001
                   ? 'REM sleep status'
                   : 'REM-safe sleep in'}
               </p>
-              <p className={`text-4xl font-bold tracking-tight ${statusColor}`}>
+              <p className={`text-4xl font-bold tracking-tight transition-colors duration-500 ${statusColor}`}>
                 {bacState.currentBAC < 0.001
                   ? 'Clear'
                   : formatCountdown(bacState.timeToREMSafeMs)}
@@ -158,11 +166,20 @@ function App() {
               </div>
             )}
 
+            {/* BAC Chart */}
+            <BACChart
+              drinks={drinks}
+              profile={profile}
+              hypotheticalDrinks={hypotheticalDrinksList}
+            />
+
             {/* Quick Add Drink */}
             <div className="space-y-3">
               <button
                 onClick={() => addDrink(1)}
-                className="w-full glass p-4 text-center active:scale-[0.98] transition-transform border border-accent-purple/20 hover:border-accent-purple/40"
+                className={`w-full glass p-4 text-center active:scale-[0.97] transition-all duration-200 border border-accent-purple/20 hover:border-accent-purple/40 ${
+                  drinkPulse ? 'ring-2 ring-accent-purple/30 scale-[0.98]' : ''
+                }`}
               >
                 <span className="text-lg font-medium text-accent-purple">
                   + Add Drink
@@ -216,7 +233,7 @@ function App() {
             </div>
 
             {/* What-If Mode */}
-            <div className="glass p-4">
+            <div className={`glass p-4 transition-all duration-300 ${whatIfMode ? 'border border-accent-purple/20' : ''}`}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-text-secondary">
                   "What if I have one more?"
@@ -239,7 +256,7 @@ function App() {
                   <div className="flex items-center gap-3 mb-2">
                     <button
                       onClick={() => setWhatIfDrinks(Math.max(1, whatIfDrinks - 1))}
-                      className="w-8 h-8 rounded-full bg-white/10 text-text-primary font-bold"
+                      className="w-8 h-8 rounded-full bg-white/10 text-text-primary font-bold active:scale-90 transition-transform"
                     >
                       −
                     </button>
@@ -248,7 +265,7 @@ function App() {
                     </span>
                     <button
                       onClick={() => setWhatIfDrinks(whatIfDrinks + 1)}
-                      className="w-8 h-8 rounded-full bg-white/10 text-text-primary font-bold"
+                      className="w-8 h-8 rounded-full bg-white/10 text-text-primary font-bold active:scale-90 transition-transform"
                     >
                       +
                     </button>
@@ -257,8 +274,7 @@ function App() {
                     </span>
                   </div>
                   <p className="text-xs text-text-muted">
-                    Preview shows impact of {whatIfDrinks} more drink
-                    {whatIfDrinks > 1 ? 's' : ''} right now
+                    Dashed line on chart shows projected BAC
                   </p>
                 </div>
               )}
@@ -268,7 +284,7 @@ function App() {
             <div className="glass p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-text-secondary">Today</span>
-                <span className="text-2xl font-bold text-text-primary animate-count-up">
+                <span className={`text-2xl font-bold text-text-primary transition-transform duration-200 ${drinkPulse ? 'scale-125' : ''}`}>
                   {totalDrinks.toFixed(totalDrinks % 1 === 0 ? 0 : 1)}
                 </span>
               </div>
@@ -276,6 +292,30 @@ function App() {
                 standard drink{totalDrinks !== 1 ? 's' : ''} logged
               </p>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'timeline' && (
+          <div className="animate-fade-in space-y-4 py-2">
+            <BACChart
+              drinks={drinks}
+              profile={profile}
+              hypotheticalDrinks={hypotheticalDrinksList}
+            />
+            <Timeline
+              drinks={drinks}
+              profile={profile}
+              hypotheticalDrinks={hypotheticalDrinksList}
+            />
+            {drinks.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-4xl mb-4">📊</p>
+                <p className="text-text-secondary">No data yet</p>
+                <p className="text-sm text-text-muted mt-1">
+                  Log drinks on the Home tab to see your timeline
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -293,19 +333,20 @@ function App() {
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           {([
             { id: 'home' as Tab, label: 'Home', icon: '◉' },
+            { id: 'timeline' as Tab, label: 'Timeline', icon: '📈' },
             { id: 'log' as Tab, label: 'Log', icon: '☰' },
             { id: 'settings' as Tab, label: 'Settings', icon: '⚙' },
           ]).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-0.5 px-6 py-2 transition-colors ${
+              className={`flex flex-col items-center gap-0.5 px-4 py-2 transition-all duration-200 ${
                 activeTab === tab.id
-                  ? 'text-accent-purple'
+                  ? 'text-accent-purple scale-105'
                   : 'text-text-muted'
               }`}
             >
-              <span className="text-xl">{tab.icon}</span>
+              <span className="text-lg">{tab.icon}</span>
               <span className="text-[10px] font-medium">{tab.label}</span>
             </button>
           ))}
