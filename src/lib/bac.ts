@@ -36,31 +36,47 @@ const WIDMARK_R_FEMALE = 0.55;
 const REM_REDUCTION_COEFFICIENT = 40.4; // minutes per g/kg dose (Gardiner 2024)
 
 /**
- * Calculate current BAC given a list of drinks and user profile.
- * Each drink is metabolized independently from its consumption time.
+ * Calculate BAC at a given time using zero-order elimination.
+ *
+ * Alcohol elimination is constant-rate (~0.015 g/dL/hr) regardless of
+ * how much is in the system. We simulate forward chronologically:
+ * between each drink event, BAC decreases linearly (clamped to 0),
+ * then the new drink's Widmark contribution is added.
  */
 export function calculateBAC(
   drinks: Drink[],
   profile: UserProfile,
   atTime: number = Date.now()
 ): number {
+  // Filter and sort drinks up to atTime
+  const relevant = drinks
+    .filter((d) => d.timestamp <= atTime)
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  if (relevant.length === 0) return 0;
+
   const r = profile.sex === 'male' ? WIDMARK_R_MALE : WIDMARK_R_FEMALE;
   const bodyWeightG = profile.weightKg * 1000;
 
-  let totalBAC = 0;
+  let bac = 0;
+  let lastTime = relevant[0].timestamp;
 
-  for (const drink of drinks) {
-    if (drink.timestamp > atTime) continue;
+  for (const drink of relevant) {
+    // Eliminate between last event and this drink
+    const hoursElapsed = (drink.timestamp - lastTime) / (1000 * 60 * 60);
+    bac = Math.max(0, bac - ELIMINATION_RATE * hoursElapsed);
+    lastTime = drink.timestamp;
 
-    const hoursElapsed = (atTime - drink.timestamp) / (1000 * 60 * 60);
+    // Add this drink's Widmark contribution
     const alcoholGrams = drink.standardDrinks * ETHANOL_PER_STANDARD_DRINK_G;
-    const bacFromDrink = (alcoholGrams / (bodyWeightG * r)) * 100;
-    const bacAfterElimination = bacFromDrink - ELIMINATION_RATE * hoursElapsed;
-
-    totalBAC += Math.max(0, bacAfterElimination);
+    bac += (alcoholGrams / (bodyWeightG * r)) * 100;
   }
 
-  return Math.max(0, totalBAC);
+  // Eliminate from last drink to atTime
+  const finalHours = (atTime - lastTime) / (1000 * 60 * 60);
+  bac = Math.max(0, bac - ELIMINATION_RATE * finalHours);
+
+  return bac;
 }
 
 /**
