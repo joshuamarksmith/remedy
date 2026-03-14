@@ -3,6 +3,7 @@ import type { Drink, UserProfile } from './bac';
 const DRINKS_KEY = 'remedy_drinks';
 const PROFILE_KEY = 'remedy_profile';
 const SESSION_KEY = 'remedy_session_date';
+const ONBOARDED_KEY = 'remedy_onboarded';
 
 const DEFAULT_PROFILE: UserProfile = {
   weightKg: 75,
@@ -98,4 +99,18 @@ export function loadProfile(): UserProfile {
  */
 export function saveProfile(profile: UserProfile): void {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+}
+
+/**
+ * Check if user has completed onboarding.
+ */
+export function hasOnboarded(): boolean {
+  return localStorage.getItem(ONBOARDED_KEY) === '1';
+}
+
+/**
+ * Mark onboarding as complete.
+ */
+export function setOnboarded(): void {
+  localStorage.setItem(ONBOARDED_KEY, '1');
 }

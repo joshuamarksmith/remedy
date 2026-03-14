@@ -7,7 +7,8 @@ import {
   type Drink,
   type BACState,
 } from './lib/bac';
-import { loadDrinks, saveDrinks, loadProfile, saveProfile } from './lib/storage';
+import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded } from './lib/storage';
+import { Onboarding } from './components/Onboarding';
 import type { UserProfile } from './lib/bac';
 import { STATUS_TEXT_CLASS, STATUS_BORDER_CLASS, formatDrinkCount } from './lib/theme';
 import { BACGauge } from './components/BACGauge';
@@ -62,6 +63,7 @@ const todayString = new Date().toLocaleDateString('en-US', {
 });
 
 function App() {
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasOnboarded());
   const [drinks, setDrinks] = useState<Drink[]>(() => loadDrinks());
   const [profile, setProfile] = useState<UserProfile>(() => loadProfile());
   const [activeTab, setActiveTab] = useState<Tab>('home');
@@ -180,6 +182,17 @@ function App() {
 
   const statusColor = STATUS_TEXT_CLASS[bacState.sleepQuality];
   const statusBorder = STATUS_BORDER_CLASS[bacState.sleepQuality];
+
+  if (showOnboarding) {
+    return (
+      <Onboarding
+        onComplete={() => {
+          setOnboarded();
+          setShowOnboarding(false);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-dvh flex flex-col bg-bg-primary pb-20">
