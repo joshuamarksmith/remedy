@@ -12,7 +12,7 @@ export const Settings = memo(function Settings({ profile, onUpdate }: SettingsPr
   const weightLbs = Math.round(profile.weightKg * LBS_PER_KG);
 
   return (
-    <div className="animate-fade-in space-y-4 py-2">
+    <div className="stagger-children space-y-4 py-2">
       <h2 className="text-sm font-medium text-text-secondary mb-3">Your Profile</h2>
 
       {/* Weight */}

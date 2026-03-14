@@ -16,7 +16,7 @@ export const DrinkLog = memo(function DrinkLog({ drinks, onRemove }: DrinkLogPro
   if (drinks.length === 0) {
     return (
       <div className="animate-fade-in text-center py-16">
-        <p className="text-4xl mb-4">🌙</p>
+        <p className="text-4xl mb-4 text-text-muted">○</p>
         <p className="text-text-secondary">No drinks logged today</p>
         <p className="text-sm text-text-muted mt-1">
           Head to Home to log your first drink
@@ -26,12 +26,12 @@ export const DrinkLog = memo(function DrinkLog({ drinks, onRemove }: DrinkLogPro
   }
 
   return (
-    <div className="animate-fade-in space-y-2 py-2">
+    <div className="stagger-children space-y-2 py-2">
       <h2 className="text-sm font-medium text-text-secondary mb-3">
         Today's drinks ({drinks.length})
       </h2>
       {sorted.map((drink) => (
-        <div key={drink.id} className="card p-3 flex items-center justify-between">
+        <div key={drink.id} className="card p-3 flex items-center justify-between press-bounce">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-accent-teal/15 flex items-center justify-center">
               <span className="text-accent-teal font-semibold">
