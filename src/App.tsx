@@ -18,11 +18,40 @@ import { Settings } from './components/Settings';
 
 type Tab = 'home' | 'timeline' | 'log' | 'settings';
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'home', label: 'Home', icon: '◉' },
-  { id: 'timeline', label: 'Timeline', icon: '📈' },
-  { id: 'log', label: 'Log', icon: '☰' },
-  { id: 'settings', label: 'Settings', icon: '⚙' },
+// Monochrome SVG nav icons — consistent style across platforms
+const NAV_ICONS: Record<Tab, React.ReactNode> = {
+  home: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4" fill="currentColor" />
+      <circle cx="12" cy="12" r="9" />
+    </svg>
+  ),
+  timeline: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="4 18 9 11 14 14 20 6" />
+      <polyline points="16 6 20 6 20 10" />
+    </svg>
+  ),
+  log: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" y1="7" x2="20" y2="7" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="17" x2="20" y2="17" />
+    </svg>
+  ),
+  settings: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  ),
+};
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'home', label: 'Home' },
+  { id: 'timeline', label: 'Timeline' },
+  { id: 'log', label: 'Log' },
+  { id: 'settings', label: 'Settings' },
 ];
 
 // Memoized date string — only changes once per day
@@ -167,9 +196,9 @@ function App() {
       {/* Main Content */}
       <main className="flex-1 px-4 overflow-y-auto">
         {activeTab === 'home' && (
-          <div className="animate-fade-in space-y-4">
+          <div className="stagger-children space-y-4">
             {/* BAC Gauge */}
-            <div className={`flex justify-center py-4 transition-transform duration-300 ${drinkPulse ? 'scale-105' : ''}`}>
+            <div className={`flex justify-center py-4 transition-transform duration-300 ${drinkPulse ? 'animate-drink-pop' : ''}`}>
               <BACGauge bac={bacState.currentBAC} quality={bacState.sleepQuality} />
             </div>
 
@@ -190,7 +219,7 @@ function App() {
               ) : (
                 <>
                   <p className="text-sm text-text-secondary mb-1">REM-safe sleep in</p>
-                  <p className={`text-4xl font-bold tracking-tight transition-colors duration-500 ${statusColor}`}>
+                  <p className={`text-4xl font-bold tracking-tight transition-colors duration-500 ${statusColor} ${bacState.sleepQuality === 'danger' ? 'animate-glow' : ''}`}>
                     {formatCountdown(bacState.timeToREMSafeMs)}
                   </p>
                   <p className="text-xs text-text-muted mt-2">
@@ -203,7 +232,7 @@ function App() {
 
             {/* REM Impact at bedtime */}
             {bacState.remReductionMinutes > 0.5 && (
-              <div className="card p-4 animate-fade-in">
+              <div className="card p-4 animate-pop-in">
                 <p className="text-sm text-text-secondary mb-2">Tonight's REM impact</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -233,8 +262,8 @@ function App() {
             <div className="card p-4 space-y-3">
               <button
                 onClick={() => addDrink(1)}
-                className={`w-full py-3 rounded-xl text-center active:scale-[0.97] transition-all duration-200 bg-accent-teal/10 border border-accent-teal/20 hover:border-accent-teal/40 ${
-                  drinkPulse ? 'ring-2 ring-accent-teal/30 scale-[0.98]' : ''
+                className={`w-full py-3 rounded-xl text-center press-bounce bg-accent-teal/10 border border-accent-teal/20 hover:border-accent-teal/40 ${
+                  drinkPulse ? 'ring-2 ring-accent-teal/30 animate-drink-pop' : ''
                 }`}
               >
                 <span className="text-lg font-medium text-accent-teal">+ 1 Standard Drink</span>
@@ -261,7 +290,7 @@ function App() {
                     }
                   }}
                   disabled={!customAmount || parseFloat(customAmount) <= 0 || isNaN(parseFloat(customAmount))}
-                  className="bg-accent-teal/15 text-accent-teal px-5 py-2.5 rounded-xl font-medium disabled:opacity-30 active:scale-95 transition-all"
+                  className="bg-accent-teal/15 text-accent-teal px-5 py-2.5 rounded-xl font-medium disabled:opacity-30 press-bounce"
                 >
                   Add
                 </button>
@@ -274,7 +303,7 @@ function App() {
 
             {/* Undo toast */}
             {lastAddedId && (
-              <div className="card p-3 flex items-center justify-between animate-fade-in">
+              <div className="card p-3 flex items-center justify-between animate-slide-up">
                 <span className="text-sm text-text-secondary">Drink added</span>
                 <button
                   onClick={undoLastDrink}
@@ -305,7 +334,7 @@ function App() {
                 </button>
               </div>
               {whatIfMode && (
-                <div className="animate-fade-in">
+                <div className="animate-slide-up">
                   <div className="flex items-center gap-3 mb-2">
                     <button
                       onClick={() => setWhatIfDrinks(Math.max(1, whatIfDrinks - 1))}
@@ -337,7 +366,7 @@ function App() {
             <div className="card p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-text-secondary">Today</span>
-                <span className={`text-2xl font-bold text-text-primary transition-transform duration-200 ${drinkPulse ? 'scale-125' : ''}`}>
+                <span className={`text-2xl font-bold text-text-primary ${drinkPulse ? 'animate-pop-in' : ''}`}>
                   {formatDrinkCount(totalDrinks)}
                 </span>
               </div>
@@ -349,18 +378,18 @@ function App() {
               {drinks.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-border-glass">
                   {showResetConfirm ? (
-                    <div className="flex items-center justify-between animate-fade-in">
+                    <div className="flex items-center justify-between animate-pop-in">
                       <span className="text-sm text-accent-red">Clear all drinks?</span>
                       <div className="flex gap-2">
                         <button
                           onClick={clearSession}
-                          className="px-3 py-1.5 rounded-lg bg-accent-red/15 text-accent-red text-sm font-medium active:scale-95 transition-transform"
+                          className="px-3 py-1.5 rounded-lg bg-accent-red/15 text-accent-red text-sm font-medium press-bounce"
                         >
                           Yes, clear
                         </button>
                         <button
                           onClick={() => setShowResetConfirm(false)}
-                          className="px-3 py-1.5 rounded-lg bg-white/5 text-text-muted text-sm active:scale-95 transition-transform"
+                          className="px-3 py-1.5 rounded-lg bg-white/5 text-text-muted text-sm press-bounce"
                         >
                           Cancel
                         </button>
@@ -381,7 +410,7 @@ function App() {
         )}
 
         {activeTab === 'timeline' && (
-          <div className="animate-fade-in space-y-4 py-2">
+          <div className="stagger-children space-y-4 py-2">
             <BACChart
               drinks={drinks}
               profile={profile}
@@ -394,7 +423,7 @@ function App() {
             />
             {drinks.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-4xl mb-4">📊</p>
+                <p className="text-4xl mb-4 text-text-muted">⊘</p>
                 <p className="text-text-secondary">No data yet</p>
                 <p className="text-sm text-text-muted mt-1">
                   Log drinks on the Home tab to see your timeline
@@ -415,12 +444,17 @@ function App() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-0.5 px-4 py-2 transition-all duration-200 ${
-                activeTab === tab.id ? 'text-accent-teal scale-105' : 'text-text-muted'
+              className={`relative flex flex-col items-center gap-0.5 px-4 py-2 transition-all duration-200 ${
+                activeTab === tab.id ? 'text-accent-teal' : 'text-text-muted'
               }`}
             >
-              <span className="text-lg">{tab.icon}</span>
+              <span className={`transition-transform duration-300 ${activeTab === tab.id ? 'nav-icon-bounce' : ''}`}>
+                {NAV_ICONS[tab.id]}
+              </span>
               <span className="text-[10px] font-medium">{tab.label}</span>
+              {activeTab === tab.id && (
+                <span className="absolute -bottom-0.5 w-4 h-0.5 rounded-full bg-accent-teal nav-dot-in" />
+              )}
             </button>
           ))}
         </div>
