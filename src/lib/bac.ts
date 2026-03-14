@@ -2,7 +2,7 @@
 // Based on Widmark Formula + REM sleep impact research
 // Sources: Gardiner et al. 2024, Ebrahim et al. 2013, Colrain et al. 2014
 
-import { BAC_THRESHOLD_CAUTION, BAC_THRESHOLD_DANGER, REM_SAFE_BUFFER_MS, type SleepQuality } from './theme';
+import { BAC_THRESHOLD_DANGER, REM_SAFE_BUFFER_MS, type SleepQuality } from './theme';
 
 export interface Drink {
   id: string;
@@ -178,16 +178,15 @@ export function calculateBACState(
   const currentDose = effectiveDoseGPerKg(currentBAC, profile.sex);
   const { minutes: remReductionMinutes, percent: remPercentReduction } = remImpact(currentDose);
 
-  // Sleep quality: based on BAC at bedtime, not current BAC
-  // If you'll be sober by bedtime, your sleep is safe
+  // Sleep quality: will you be REM-safe by bedtime?
+  // "Safe" = sober + 1hr buffer before bedtime. Otherwise check BAC at bedtime.
   const bedtimeTs = nextBedtime(profile.bedtime);
   const bacAtBedtime = calculateBAC(allDrinks, profile, bedtimeTs);
 
   let sleepQuality: SleepQuality = 'safe';
-  if (bacAtBedtime > BAC_THRESHOLD_DANGER) {
-    sleepQuality = 'danger';
-  } else if (bacAtBedtime > BAC_THRESHOLD_CAUTION) {
-    sleepQuality = 'caution';
+  if (remSafeAtTimestamp > bedtimeTs) {
+    // Won't be REM-safe by bedtime — severity based on BAC at bedtime
+    sleepQuality = bacAtBedtime > BAC_THRESHOLD_DANGER ? 'danger' : 'caution';
   }
 
   return {
