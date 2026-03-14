@@ -114,3 +114,14 @@ export function hasOnboarded(): boolean {
 export function setOnboarded(): void {
   localStorage.setItem(ONBOARDED_KEY, '1');
 }
+
+/**
+ * Clear all app data and return to first-run state.
+ */
+export function resetApp(): void {
+  localStorage.removeItem(DRINKS_KEY);
+  localStorage.removeItem(PROFILE_KEY);
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(ONBOARDED_KEY);
+  localStorage.removeItem('remedy_history');
+}
