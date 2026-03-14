@@ -91,6 +91,16 @@ body {
   50% { filter: drop-shadow(0 0 12px currentColor); }
 }
 
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 /* ---- Animation classes ---- */
 
 .animate-fade-in {
@@ -158,6 +168,14 @@ body {
 }
 
 /* Smooth press feedback */
+/* Onboarding slide transitions */
+.onboarding-slide-right {
+  animation: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.onboarding-slide-left {
+  animation: slide-in-left 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 .press-bounce {
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
