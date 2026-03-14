@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-primary: #0a0a1a;
-  --color-bg-card: rgba(255, 255, 255, 0.05);
-  --color-bg-card-hover: rgba(255, 255, 255, 0.08);
-  --color-border-glass: rgba(255, 255, 255, 0.1);
+  --color-bg-primary: #0f172a;
+  --color-bg-card: rgba(255, 255, 255, 0.04);
+  --color-bg-card-hover: rgba(255, 255, 255, 0.07);
+  --color-border-glass: rgba(255, 255, 255, 0.08);
   --color-accent-green: #34d399;
   --color-accent-yellow: #fbbf24;
   --color-accent-red: #f87171;
-  --color-accent-purple: #a78bfa;
   --color-accent-blue: #60a5fa;
+  --color-accent-teal: #2dd4bf;
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #94a3b8;
   --color-text-muted: #64748b;
@@ -31,26 +31,17 @@ body {
   min-height: 100dvh;
 }
 
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+  animation: fade-in 0.25s ease-out;
 }
 
 @keyframes count-up {
-  from { transform: scale(0.8); opacity: 0; }
+  from { transform: scale(0.85); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
 
@@ -58,11 +49,9 @@ body {
   animation: count-up 0.2s ease-out;
 }
 
-/* Glass morphism card */
-.glass {
+/* Card style — simple bg + border, no expensive blur */
+.card {
   background: var(--color-bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--color-border-glass);
   border-radius: 16px;
 }

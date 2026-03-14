@@ -1,11 +1,18 @@
+import { memo, useMemo } from 'react';
 import type { Drink } from '../lib/bac';
+import { formatTime, formatDrinkCount } from '../lib/theme';
 
 interface DrinkLogProps {
   drinks: Drink[];
   onRemove: (id: string) => void;
 }
 
-export function DrinkLog({ drinks, onRemove }: DrinkLogProps) {
+export const DrinkLog = memo(function DrinkLog({ drinks, onRemove }: DrinkLogProps) {
+  const sorted = useMemo(
+    () => [...drinks].sort((a, b) => b.timestamp - a.timestamp),
+    [drinks]
+  );
+
   if (drinks.length === 0) {
     return (
       <div className="animate-fade-in text-center py-16">
@@ -18,50 +25,36 @@ export function DrinkLog({ drinks, onRemove }: DrinkLogProps) {
     );
   }
 
-  // Show in reverse chronological order
-  const sorted = [...drinks].sort((a, b) => b.timestamp - a.timestamp);
-
   return (
     <div className="animate-fade-in space-y-2 py-2">
       <h2 className="text-sm font-medium text-text-secondary mb-3">
         Today's drinks ({drinks.length})
       </h2>
-      {sorted.map((drink) => {
-        const time = new Date(drink.timestamp);
-        const timeStr = time.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-        });
-
-        return (
-          <div
-            key={drink.id}
-            className="glass p-3 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-accent-purple/15 flex items-center justify-center">
-                <span className="text-accent-purple font-semibold">
-                  {drink.standardDrinks.toFixed(drink.standardDrinks % 1 === 0 ? 0 : 1)}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-text-primary">
-                  {drink.standardDrinks === 1
-                    ? '1 standard drink'
-                    : `${drink.standardDrinks} standard drinks`}
-                </p>
-                <p className="text-xs text-text-muted">{timeStr}</p>
-              </div>
+      {sorted.map((drink) => (
+        <div key={drink.id} className="card p-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-accent-teal/15 flex items-center justify-center">
+              <span className="text-accent-teal font-semibold">
+                {formatDrinkCount(drink.standardDrinks)}
+              </span>
             </div>
-            <button
-              onClick={() => onRemove(drink.id)}
-              className="text-text-muted hover:text-accent-red transition-colors px-2 py-1 text-sm"
-            >
-              ✕
-            </button>
+            <div>
+              <p className="text-sm font-medium text-text-primary">
+                {drink.standardDrinks === 1
+                  ? '1 standard drink'
+                  : `${formatDrinkCount(drink.standardDrinks)} standard drinks`}
+              </p>
+              <p className="text-xs text-text-muted">{formatTime(drink.timestamp)}</p>
+            </div>
           </div>
-        );
-      })}
+          <button
+            onClick={() => onRemove(drink.id)}
+            className="text-text-muted hover:text-accent-red transition-colors px-2 py-1 text-sm"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
     </div>
   );
-}
+});
