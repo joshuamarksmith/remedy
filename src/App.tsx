@@ -175,19 +175,29 @@ function App() {
 
             {/* REM-Safe Countdown */}
             <div className={`card p-4 text-center border transition-all duration-500 ${statusBorder}`}>
-              <p className="text-sm text-text-secondary mb-1">
-                {bacState.currentBAC < 0.001 ? 'REM sleep status' : 'REM-safe sleep in'}
-              </p>
-              <p className={`text-4xl font-bold tracking-tight transition-colors duration-500 ${statusColor}`}>
-                {bacState.currentBAC < 0.001
-                  ? 'Clear'
-                  : formatCountdown(bacState.timeToREMSafeMs)}
-              </p>
-              {bacState.currentBAC >= 0.001 && (
-                <p className="text-xs text-text-muted mt-2">
-                  Sober in {formatCountdown(bacState.timeToSoberMs)} · BAC{' '}
-                  {formatBAC(bacState.currentBAC)}
-                </p>
+              {bacState.sleepQuality === 'safe' ? (
+                <>
+                  <p className="text-sm text-text-secondary mb-1">Tonight's REM sleep</p>
+                  <p className={`text-4xl font-bold tracking-tight transition-colors duration-500 ${statusColor}`}>
+                    Clear
+                  </p>
+                  {bacState.currentBAC >= 0.001 && (
+                    <p className="text-xs text-text-muted mt-2">
+                      Sober well before bedtime · BAC {formatBAC(bacState.currentBAC)}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-text-secondary mb-1">REM-safe sleep in</p>
+                  <p className={`text-4xl font-bold tracking-tight transition-colors duration-500 ${statusColor}`}>
+                    {formatCountdown(bacState.timeToREMSafeMs)}
+                  </p>
+                  <p className="text-xs text-text-muted mt-2">
+                    Sober in {formatCountdown(bacState.timeToSoberMs)} · BAC{' '}
+                    {formatBAC(bacState.currentBAC)}
+                  </p>
+                </>
               )}
             </div>
 

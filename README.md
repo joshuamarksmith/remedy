@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# **rem**edy
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Track your drinks. Protect your REM sleep.
 
-Currently, two official plugins are available:
+**remedy** is a mobile-first PWA that logs alcoholic drinks and shows you in real time how they affect your sleep. It calculates your BAC, estimates how much REM sleep you'll lose, and tells you when it's safe to sleep without impact.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+<p align="center">
+  <img src="assets/screenshot-home.png" width="200" alt="Home screen" />
+  <img src="assets/screenshot-with-drinks.png" width="200" alt="With drinks logged" />
+  <img src="assets/screenshot-timeline.png" width="200" alt="Timeline view" />
+</p>
 
-## React Compiler
+## What it does
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Log drinks** with one tap (standard) or custom amounts (e.g. 1.5 standard drinks)
+- **Real-time BAC** calculated using the Widmark formula, updating every second
+- **REM-safe countdown** — how long until alcohol clears enough for normal REM sleep
+- **REM impact estimate** — minutes of REM lost and percentage reduction if you sleep now
+- **"What if I have one more?"** — toggle hypothetical drinks to see projected impact
+- **BAC curve chart** with color-coded REM zones (safe / reduced / blocked)
+- **Timeline** of drink events, BAC milestones, and projected sober/REM-safe times
+- **Undo** last drink within 5 seconds
 
-## Expanding the ESLint configuration
+## The science
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+BAC is estimated using the **Widmark formula**, the standard in forensic toxicology. Alcohol elimination is modeled as zero-order (constant rate of ~0.015 g/dL/hr).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+REM impact is based on the **Gardiner et al. 2024** meta-analysis of 27 studies: each g/kg of alcohol reduces REM sleep by approximately 40 minutes. The REM-safe threshold adds a 1-hour buffer after BAC reaches zero for sleep architecture to normalize.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Sources: Ebrahim et al. 2013, Colrain et al. 2014, Gardiner et al. 2024, Ohayon et al. 2004.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Run locally
+
+```
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Deploy
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Configured for Cloudflare Pages:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+npm run deploy
+```
+
+## Tech
+
+React 19, TypeScript, Vite 8, Tailwind CSS v4. No chart library — the BAC curve is drawn on canvas. All data stays in localStorage.
