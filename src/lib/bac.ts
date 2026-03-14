@@ -34,6 +34,7 @@ const ELIMINATION_RATE = 0.015; // g/dL per hour
 const WIDMARK_R_MALE = 0.68;
 const WIDMARK_R_FEMALE = 0.55;
 const REM_REDUCTION_COEFFICIENT = 40.4; // minutes per g/kg dose (Gardiner 2024)
+const BASELINE_REM_MINUTES = 96; // ~20-25% of 8h sleep (Ohayon et al. 2004)
 
 /**
  * Calculate BAC at a given time using zero-order elimination.
@@ -140,7 +141,9 @@ export function calculateBACState(
   );
   const doseGPerKg = totalAlcoholG / profile.weightKg;
   const remReductionMinutes = currentBAC > 0.001 ? REM_REDUCTION_COEFFICIENT * doseGPerKg : 0;
-  const remPercentReduction = currentBAC > 0.001 ? 2.8 * (doseGPerKg / 0.75) : 0;
+  const remPercentReduction = currentBAC > 0.001
+    ? Math.min(100, (remReductionMinutes / BASELINE_REM_MINUTES) * 100)
+    : 0;
 
   let sleepQuality: SleepQuality = 'safe';
   if (currentBAC > BAC_THRESHOLD_DANGER) {
@@ -174,9 +177,12 @@ export function generateBACCurve(
 ): { time: number; bac: number }[] {
   if (drinks.length === 0) return [];
 
+  const now = Date.now();
   const start = startTime ?? Math.min(...drinks.map((d) => d.timestamp)) - 15 * 60 * 1000;
   const soberTime = findSoberTime(drinks, profile);
-  const end = endTime ?? soberTime + 60 * 60 * 1000;
+  const maxEnd = start + 16 * 60 * 60 * 1000; // cap at 16 hours from start
+  const naturalEnd = soberTime + 60 * 60 * 1000;
+  const end = endTime ?? Math.min(naturalEnd, Math.max(maxEnd, now + 2 * 60 * 60 * 1000));
 
   const points: { time: number; bac: number }[] = [];
   for (let t = start; t <= end; t += intervalMinutes * 60 * 1000) {
