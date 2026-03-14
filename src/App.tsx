@@ -201,10 +201,10 @@ function App() {
               )}
             </div>
 
-            {/* REM Impact */}
-            {bacState.currentBAC >= 0.001 && (
+            {/* REM Impact at bedtime */}
+            {bacState.remReductionMinutes > 0.5 && (
               <div className="card p-4 animate-fade-in">
-                <p className="text-sm text-text-secondary mb-2">If you sleep now</p>
+                <p className="text-sm text-text-secondary mb-2">Tonight's REM impact</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-2xl font-semibold text-accent-red">

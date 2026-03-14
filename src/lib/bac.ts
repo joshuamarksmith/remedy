@@ -173,15 +173,11 @@ export function calculateBACState(
   const remSafeAtTimestamp = soberAtTimestamp + REM_SAFE_BUFFER_MS;
   const timeToREMSafeMs = Math.max(0, remSafeAtTimestamp - now);
 
-  // REM impact: based on effective remaining dose, not total consumed
-  // "If you sleep now" = impact from alcohol currently in your system
-  const currentDose = effectiveDoseGPerKg(currentBAC, profile.sex);
-  const { minutes: remReductionMinutes, percent: remPercentReduction } = remImpact(currentDose);
-
-  // Sleep quality: will you be REM-safe by bedtime?
-  // "Safe" = sober + 1hr buffer before bedtime. Otherwise check BAC at bedtime.
+  // Sleep quality + REM impact: based on BAC at bedtime
   const bedtimeTs = nextBedtime(profile.bedtime);
   const bacAtBedtime = calculateBAC(allDrinks, profile, bedtimeTs);
+  const bedtimeDose = effectiveDoseGPerKg(bacAtBedtime, profile.sex);
+  const { minutes: remReductionMinutes, percent: remPercentReduction } = remImpact(bedtimeDose);
 
   let sleepQuality: SleepQuality = 'safe';
   if (remSafeAtTimestamp > bedtimeTs) {
