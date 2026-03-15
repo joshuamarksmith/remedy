@@ -125,3 +125,45 @@ export function resetApp(): void {
   localStorage.removeItem(ONBOARDED_KEY);
   localStorage.removeItem('remedy_history');
 }
+
+/**
+ * Add a drink at an arbitrary timestamp.
+ * If the drink is from today, adds to the current session.
+ * If it's from a past date, adds to history.
+ * Returns true if it was added to today's session (caller should reload drinks).
+ */
+export function addHistoricalDrink(drink: Drink): boolean {
+  const drinkDate = new Date(drink.timestamp).toISOString().split('T')[0];
+  const today = getTodayKey();
+
+  if (drinkDate === today) {
+    // Add to current session
+    const current = loadDrinks();
+    current.push(drink);
+    saveDrinks(current);
+    return true;
+  }
+
+  // Add to history archive
+  const historyKey = 'remedy_history';
+  const history = JSON.parse(localStorage.getItem(historyKey) || '[]') as {
+    date: string;
+    drinks: Drink[];
+  }[];
+
+  const existing = history.find((h) => h.date === drinkDate);
+  if (existing) {
+    existing.drinks.push(drink);
+  } else {
+    history.push({ date: drinkDate, drinks: [drink] });
+    history.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // Keep last 90 days
+  if (history.length > 90) {
+    history.splice(0, history.length - 90);
+  }
+
+  localStorage.setItem(historyKey, JSON.stringify(history));
+  return false;
+}
