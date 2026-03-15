@@ -3,6 +3,14 @@ import type { UserProfile } from '../lib/bac';
 
 const LBS_PER_KG = 2.20462;
 
+function lbsToKg(lbs: number): number {
+  return lbs / LBS_PER_KG;
+}
+
+function kgToLbs(kg: number): number {
+  return Math.round(kg * LBS_PER_KG);
+}
+
 interface SettingsProps {
   profile: UserProfile;
   onUpdate: (profile: UserProfile) => void;
@@ -11,7 +19,9 @@ interface SettingsProps {
 }
 
 export const Settings = memo(function Settings({ profile, onUpdate, onReset, onAddHistorical }: SettingsProps) {
-  const weightLbs = Math.round(profile.weightKg * LBS_PER_KG);
+  const [weightInput, setWeightInput] = useState(() => String(kgToLbs(profile.weightKg)));
+  const [editingWeight, setEditingWeight] = useState(false);
+  const displayWeight = editingWeight ? weightInput : String(kgToLbs(profile.weightKg));
   const [confirmReset, setConfirmReset] = useState(false);
   const [showAddPast, setShowAddPast] = useState(false);
   const [pastDate, setPastDate] = useState('');
@@ -29,11 +39,24 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
         <div className="flex items-center gap-3">
           <input
             type="number"
-            value={weightLbs}
+            inputMode="numeric"
+            value={displayWeight}
+            onFocus={() => {
+              setEditingWeight(true);
+              setWeightInput(String(kgToLbs(profile.weightKg)));
+            }}
             onChange={(e) => {
+              setWeightInput(e.target.value);
               const lbs = parseFloat(e.target.value);
               if (lbs > 0) {
-                onUpdate({ ...profile, weightKg: lbs / LBS_PER_KG });
+                onUpdate({ ...profile, weightKg: lbsToKg(lbs) });
+              }
+            }}
+            onBlur={() => {
+              setEditingWeight(false);
+              const lbs = parseFloat(weightInput);
+              if (lbs > 0) {
+                onUpdate({ ...profile, weightKg: lbsToKg(lbs) });
               }
             }}
             className="flex-1 bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50 text-lg"
@@ -41,7 +64,7 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
           <span className="text-text-muted text-sm">lbs</span>
         </div>
         <p className="text-xs text-text-muted mt-1">
-          ≈ {Math.round(profile.weightKg)} kg
+          ≈ {Math.round(lbsToKg(parseFloat(displayWeight) || 0))} kg
         </p>
       </div>
 
