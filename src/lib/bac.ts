@@ -26,6 +26,9 @@ export interface BACState {
   remReductionMinutes: number;
   remPercentReduction: number;
   sleepQuality: SleepQuality;
+  /** Timestamp when REM loss drops below 10 minutes (practical "okay to sleep" time) */
+  lowImpactAtTimestamp: number;
+  timeToLowImpactMs: number;
 }
 
 // Constants
@@ -150,6 +153,43 @@ function nextBedtime(bedtime: string): number {
   return candidates[2]; // fallback
 }
 
+/** BAC threshold below which REM loss is < 10 minutes */
+const LOW_IMPACT_REM_MINUTES = 10;
+
+function lowImpactBACThreshold(sex: 'male' | 'female'): number {
+  const r = sex === 'male' ? WIDMARK_R_MALE : WIDMARK_R_FEMALE;
+  // REM loss = REM_REDUCTION_COEFFICIENT * BAC * r * 10 < LOW_IMPACT_REM_MINUTES
+  return LOW_IMPACT_REM_MINUTES / (REM_REDUCTION_COEFFICIENT * r * 10);
+}
+
+/**
+ * Find when BAC drops to a given threshold (binary search).
+ */
+function findBACThresholdTime(
+  drinks: Drink[],
+  profile: UserProfile,
+  threshold: number
+): number {
+  const now = Date.now();
+  const currentBAC = calculateBAC(drinks, profile, now);
+  if (currentBAC <= threshold) return now;
+
+  const hoursToThreshold = (currentBAC - threshold) / ELIMINATION_RATE;
+  let low = now;
+  let high = now + (hoursToThreshold + 2) * 60 * 60 * 1000;
+
+  while (high - low > 60000) {
+    const mid = (low + high) / 2;
+    if (calculateBAC(drinks, profile, mid) > threshold) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  return high;
+}
+
 /**
  * Derive effective remaining dose (g/kg) from a BAC value.
  * Inverse of Widmark: BAC = (alcoholG / (weightG * r)) * 100
@@ -207,6 +247,13 @@ export function calculateBACState(
     sleepQuality = bacAtBedtime > BAC_THRESHOLD_DANGER ? 'danger' : 'caution';
   }
 
+  // Find "low impact" time — when REM loss drops below 10 minutes
+  const lowImpactThreshold = lowImpactBACThreshold(profile.sex);
+  const lowImpactAtTimestamp = currentBAC > lowImpactThreshold
+    ? findBACThresholdTime(allDrinks, profile, lowImpactThreshold)
+    : now;
+  const timeToLowImpactMs = Math.max(0, lowImpactAtTimestamp - now);
+
   return {
     currentBAC,
     peakBAC,
@@ -217,6 +264,8 @@ export function calculateBACState(
     remReductionMinutes,
     remPercentReduction,
     sleepQuality,
+    lowImpactAtTimestamp,
+    timeToLowImpactMs,
   };
 }
 
