@@ -115,6 +115,8 @@ function App() {
         remReductionMinutes: 0,
         remPercentReduction: 0,
         sleepQuality: 'safe' as const,
+        lowImpactAtTimestamp: now,
+        timeToLowImpactMs: 0,
       };
     }
     return calculateBACState(drinks, profile, hypotheticalDrinksList);
@@ -215,7 +217,7 @@ function App() {
               <BACGauge bac={bacState.currentBAC} quality={bacState.sleepQuality} />
             </div>
 
-            {/* REM-Safe Countdown */}
+            {/* Tonight's Sleep */}
             <div className={`card p-4 text-center border transition-all duration-500 ${statusBorder}`}>
               {bacState.sleepQuality === 'safe' ? (
                 <>
@@ -225,44 +227,35 @@ function App() {
                   </p>
                   {bacState.currentBAC >= 0.001 && (
                     <p className="text-xs text-text-muted mt-2">
-                      Sober well before bedtime · BAC {formatBAC(bacState.currentBAC)}
+                      BAC {formatBAC(bacState.currentBAC)} · sober well before bedtime
                     </p>
                   )}
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-text-secondary mb-1">REM-safe sleep in</p>
+                  <p className="text-sm text-text-secondary mb-1">Tonight's REM sleep</p>
                   <p className={`text-4xl font-bold tracking-tight transition-colors duration-500 ${statusColor} ${bacState.sleepQuality === 'danger' ? 'animate-glow' : ''}`}>
-                    {formatCountdown(bacState.timeToREMSafeMs)}
+                    −{Math.round(bacState.remReductionMinutes)}min
                   </p>
                   <p className="text-xs text-text-muted mt-2">
-                    Sober in {formatCountdown(bacState.timeToSoberMs)} · BAC{' '}
-                    {formatBAC(bacState.currentBAC)}
+                    REM lost if you sleep at your usual time
                   </p>
+                  <div className="mt-3 pt-3 border-t border-border-glass space-y-1">
+                    {bacState.timeToLowImpactMs > 0 && (
+                      <p className="text-sm text-text-secondary">
+                        Low impact by{' '}
+                        <span className="font-medium text-accent-teal">
+                          {new Date(bacState.lowImpactAtTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </span>
+                      </p>
+                    )}
+                    <p className="text-xs text-text-muted">
+                      BAC {formatBAC(bacState.currentBAC)} · sober in {formatCountdown(bacState.timeToSoberMs)}
+                    </p>
+                  </div>
                 </>
               )}
             </div>
-
-            {/* REM Impact at bedtime */}
-            {bacState.remReductionMinutes > 0.5 && (
-              <div className="card p-4 animate-pop-in">
-                <p className="text-sm text-text-secondary mb-2">Tonight's REM impact</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-2xl font-semibold text-accent-red">
-                      -{Math.round(bacState.remReductionMinutes)}m
-                    </p>
-                    <p className="text-xs text-text-muted">REM sleep lost</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-semibold text-accent-yellow">
-                      -{bacState.remPercentReduction.toFixed(1)}%
-                    </p>
-                    <p className="text-xs text-text-muted">REM proportion</p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* BAC Chart */}
             <BACChart
