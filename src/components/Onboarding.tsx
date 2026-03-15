@@ -7,14 +7,31 @@ interface OnboardingProps {
 const SLIDES = [
   {
     visual: (
-      <div className="relative w-40 h-36 mx-auto flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-6xl mb-1">🛌</p>
-          <div className="flex items-center justify-center gap-1.5 mt-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-accent-green animate-pulse" />
-            <p className="text-sm text-accent-green font-medium">REM-safe</p>
-          </div>
-        </div>
+      <div className="relative w-44 h-36 mx-auto flex items-center justify-center">
+        <svg viewBox="0 0 160 120" className="w-full h-full">
+          {/* Moon */}
+          <circle cx="80" cy="42" r="28" fill="#2dd4bf" opacity="0.15" />
+          <path
+            d="M68 18a24 24 0 1 0 0 48 20 20 0 0 1 0-48z"
+            fill="#2dd4bf" opacity="0.9"
+          />
+          {/* Stars */}
+          <circle cx="120" cy="22" r="1.5" fill="#94a3b8" opacity="0.7" className="animate-pulse" />
+          <circle cx="38" cy="30" r="1" fill="#94a3b8" opacity="0.5" />
+          <circle cx="130" cy="45" r="1" fill="#94a3b8" opacity="0.4" />
+          {/* Sleep wave - smooth */}
+          <path
+            d="M16 90 Q32 78, 48 90 Q64 102, 80 90 Q96 78, 112 90 Q128 102, 144 90"
+            fill="none" stroke="#2dd4bf" strokeWidth="2.5" strokeLinecap="round"
+            opacity="0.8"
+          />
+          {/* Sleep wave - faded echo */}
+          <path
+            d="M16 100 Q32 92, 48 100 Q64 108, 80 100 Q96 92, 112 100 Q128 108, 144 100"
+            fill="none" stroke="#2dd4bf" strokeWidth="1.5" strokeLinecap="round"
+            opacity="0.25"
+          />
+        </svg>
       </div>
     ),
     title: 'Sleep better tonight',
