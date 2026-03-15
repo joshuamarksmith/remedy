@@ -230,6 +230,18 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
           </div>
         )}
       </div>
+      {/* Disclaimer */}
+      <div className="card p-4">
+        <p className="text-xs text-text-muted leading-relaxed">
+          <span className="font-medium text-text-secondary">Disclaimer:</span>{' '}
+          Remedy is for informational and educational purposes only. BAC estimates
+          are approximate and vary based on many factors not captured here (food,
+          medications, metabolism, hydration). This app is not medical advice and
+          should never be used to determine fitness to drive or operate machinery.
+          When in doubt, don't drive. If you're concerned about your drinking,
+          talk to a healthcare professional.
+        </p>
+      </div>
     </div>
   );
 });

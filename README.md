@@ -10,6 +10,14 @@ Track your drinks. Protect your REM sleep.
   <img src="assets/screenshot-timeline.png" width="200" alt="Timeline view" />
 </p>
 
+## Disclaimer
+
+**Remedy is for informational and educational purposes only.** BAC calculations are approximate estimates based on the Widmark formula and do not account for all individual factors (food intake, medications, hydration, liver health, tolerance, or genetic variation).
+
+**This app should never be used to determine whether it is safe to drive, operate machinery, or make safety-critical decisions.** Always err on the side of caution. When in doubt, don't drive.
+
+If you are concerned about your alcohol consumption, please consult a healthcare professional or contact [SAMHSA's National Helpline](https://www.samhsa.gov/find-help/national-helpline) at 1-800-662-4357 (free, confidential, 24/7).
+
 ## What it does
 
 - **Log drinks** with one tap (standard) or custom amounts (e.g. 1.5 standard drinks)
