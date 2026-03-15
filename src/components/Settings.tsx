@@ -7,11 +7,17 @@ interface SettingsProps {
   profile: UserProfile;
   onUpdate: (profile: UserProfile) => void;
   onReset: () => void;
+  onAddHistorical: (timestamp: number, standardDrinks: number) => void;
 }
 
-export const Settings = memo(function Settings({ profile, onUpdate, onReset }: SettingsProps) {
+export const Settings = memo(function Settings({ profile, onUpdate, onReset, onAddHistorical }: SettingsProps) {
   const weightLbs = Math.round(profile.weightKg * LBS_PER_KG);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [showAddPast, setShowAddPast] = useState(false);
+  const [pastDate, setPastDate] = useState('');
+  const [pastTime, setPastTime] = useState('20:00');
+  const [pastAmount, setPastAmount] = useState('1');
+  const [pastConfirmation, setPastConfirmation] = useState('');
 
   return (
     <div className="stagger-children space-y-4 py-2">
@@ -94,6 +100,79 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset }: S
             Sources: Ebrahim et al. 2013, Colrain et al. 2014, Gardiner et al. 2024
           </p>
         </div>
+      </div>
+
+      {/* Add Past Drinks */}
+      <div className="card p-4">
+        <button
+          onClick={() => setShowAddPast(!showAddPast)}
+          className="w-full flex items-center justify-between"
+        >
+          <h3 className="text-sm font-medium text-text-secondary">Add past drinks</h3>
+          <span className={`text-text-muted text-xs transition-transform duration-200 ${showAddPast ? 'rotate-180' : ''}`}>
+            ▾
+          </span>
+        </button>
+        {showAddPast && (
+          <div className="mt-3 space-y-3 animate-slide-up">
+            <p className="text-xs text-text-muted">
+              Backfill drinks you forgot to log. Past dates go to history.
+            </p>
+            <div>
+              <label className="text-xs text-text-muted block mb-1">Date</label>
+              <input
+                type="date"
+                value={pastDate}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setPastDate(e.target.value)}
+                className="w-full bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-text-muted block mb-1">Time</label>
+              <input
+                type="time"
+                value={pastTime}
+                onChange={(e) => setPastTime(e.target.value)}
+                className="w-full bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-text-muted block mb-1">Standard drinks</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.5"
+                min="0.5"
+                max="20"
+                value={pastAmount}
+                onChange={(e) => setPastAmount(e.target.value)}
+                className="w-full bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50"
+              />
+            </div>
+            <button
+              onClick={() => {
+                if (!pastDate) return;
+                const val = parseFloat(pastAmount);
+                if (!val || val <= 0) return;
+                const [y, mo, d] = pastDate.split('-').map(Number);
+                const [h, m] = pastTime.split(':').map(Number);
+                const ts = new Date(y, mo - 1, d, h, m).getTime();
+                onAddHistorical(ts, val);
+                setPastConfirmation(`Added ${val} drink${val !== 1 ? 's' : ''} on ${pastDate}`);
+                setPastAmount('1');
+                setTimeout(() => setPastConfirmation(''), 3000);
+              }}
+              disabled={!pastDate || !pastAmount || parseFloat(pastAmount) <= 0}
+              className="w-full py-2 rounded-lg text-sm font-medium bg-accent-teal/15 text-accent-teal border border-accent-teal/20 disabled:opacity-30 transition-colors"
+            >
+              Add to history
+            </button>
+            {pastConfirmation && (
+              <p className="text-xs text-accent-green animate-pop-in">{pastConfirmation}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Reset App */}
