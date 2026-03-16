@@ -12,10 +12,15 @@ const DEFAULT_PROFILE: UserProfile = {
 };
 
 /**
- * Get today's date string for session tracking.
+ * Get the session date key. Uses local time with a 5 AM rollover —
+ * a drinking session that spans midnight still counts as one "day".
+ * This prevents drinks from vanishing when the clock strikes 12.
  */
-function getTodayKey(): string {
-  return new Date().toISOString().split('T')[0];
+function getSessionDateKey(): string {
+  const now = new Date();
+  // Subtract 5 hours so the "day" rolls over at 5 AM local, not midnight
+  const shifted = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+  return shifted.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
 }
 
 /**
@@ -24,7 +29,7 @@ function getTodayKey(): string {
 export function loadDrinks(): Drink[] {
   try {
     const sessionDate = localStorage.getItem(SESSION_KEY);
-    const today = getTodayKey();
+    const today = getSessionDateKey();
 
     // If it's a new day, archive old drinks and start fresh
     if (sessionDate !== today) {
@@ -46,7 +51,7 @@ export function loadDrinks(): Drink[] {
  */
 export function saveDrinks(drinks: Drink[]): void {
   localStorage.setItem(DRINKS_KEY, JSON.stringify(drinks));
-  localStorage.setItem(SESSION_KEY, getTodayKey());
+  localStorage.setItem(SESSION_KEY, getSessionDateKey());
 }
 
 /**
@@ -66,7 +71,7 @@ function archiveDrinks(): void {
       drinks: Drink[];
     }[];
 
-    const sessionDate = localStorage.getItem(SESSION_KEY) || getTodayKey();
+    const sessionDate = localStorage.getItem(SESSION_KEY) || getSessionDateKey();
     history.push({ date: sessionDate, drinks });
 
     // Keep last 90 days
@@ -133,8 +138,10 @@ export function resetApp(): void {
  * Returns true if it was added to today's session (caller should reload drinks).
  */
 export function addHistoricalDrink(drink: Drink): boolean {
-  const drinkDate = new Date(drink.timestamp).toISOString().split('T')[0];
-  const today = getTodayKey();
+  const drinkTs = new Date(drink.timestamp);
+  const shifted = new Date(drinkTs.getTime() - 5 * 60 * 60 * 1000);
+  const drinkDate = shifted.toLocaleDateString('en-CA');
+  const today = getSessionDateKey();
 
   if (drinkDate === today) {
     // Add to current session
