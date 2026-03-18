@@ -8,6 +8,7 @@ import {
   type BACState,
 } from './lib/bac';
 import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink } from './lib/storage';
+import { scheduleREMClearNotification, cancelREMClearNotification } from './lib/notifications';
 import { Onboarding } from './components/Onboarding';
 import type { UserProfile } from './lib/bac';
 import { STATUS_TEXT_CLASS, STATUS_BORDER_CLASS, formatDrinkCount } from './lib/theme';
@@ -121,6 +122,16 @@ function App() {
     }
     return calculateBACState(drinks, profile, hypotheticalDrinksList);
   }, [drinks, profile, hypotheticalDrinksList]);
+
+  // Schedule/cancel REM-clear notification when BAC state changes
+  useEffect(() => {
+    if (bacState.sleepQuality === 'safe' || bacState.lowImpactAtTimestamp <= Date.now()) {
+      cancelREMClearNotification();
+    } else {
+      scheduleREMClearNotification(bacState.lowImpactAtTimestamp);
+    }
+    return () => cancelREMClearNotification();
+  }, [bacState.lowImpactAtTimestamp, bacState.sleepQuality]);
 
   // Persist on change (not in effects — direct in handlers)
   const updateDrinks = useCallback(
@@ -309,14 +320,19 @@ function App() {
 
             {/* Undo toast */}
             {lastAddedId && (
-              <div className="card p-3 flex items-center justify-between animate-slide-up">
-                <span className="text-sm text-text-secondary">Drink added</span>
-                <button
-                  onClick={undoLastDrink}
-                  className="text-sm font-medium text-accent-teal active:scale-95 transition-transform"
-                >
-                  Undo
-                </button>
+              <div className="card p-3 animate-slide-up space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-secondary">Drink added</span>
+                  <button
+                    onClick={undoLastDrink}
+                    className="text-sm font-medium text-accent-teal active:scale-95 transition-transform"
+                  >
+                    Undo
+                  </button>
+                </div>
+                {drinks.length % 2 === 0 && drinks.length > 0 && (
+                  <p className="text-xs text-text-muted">Have a glass of water too</p>
+                )}
               </div>
             )}
 

@@ -1,5 +1,11 @@
 import { memo, useState } from 'react';
 import type { UserProfile } from '../lib/bac';
+import {
+  isNotificationEnabled,
+  setNotificationEnabled,
+  requestPermission,
+  cancelREMClearNotification,
+} from '../lib/notifications';
 
 const LBS_PER_KG = 2.20462;
 
@@ -23,6 +29,7 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
   const [editingWeight, setEditingWeight] = useState(false);
   const displayWeight = editingWeight ? weightInput : String(kgToLbs(profile.weightKg));
   const [confirmReset, setConfirmReset] = useState(false);
+  const [notifyEnabled, setNotifyEnabled] = useState(() => isNotificationEnabled());
   const [showAddPast, setShowAddPast] = useState(false);
   const [pastDate, setPastDate] = useState('');
   const [pastTime, setPastTime] = useState('20:00');
@@ -100,6 +107,40 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
           onChange={(e) => onUpdate({ ...profile, bedtime: e.target.value })}
           className="w-full bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50 text-lg"
         />
+      </div>
+
+      {/* REM-Clear Notification */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-text-secondary">REM-clear notification</p>
+            <p className="text-xs text-text-muted mt-0.5">Get notified when your sleep is no longer impacted</p>
+          </div>
+          <button
+            onClick={async () => {
+              if (isNotificationEnabled()) {
+                setNotificationEnabled(false);
+                cancelREMClearNotification();
+                setNotifyEnabled(false);
+              } else {
+                const granted = await requestPermission();
+                if (granted) {
+                  setNotificationEnabled(true);
+                  setNotifyEnabled(true);
+                }
+              }
+            }}
+            className={`w-12 h-7 rounded-full transition-colors relative ${
+              notifyEnabled ? 'bg-accent-teal' : 'bg-white/10'
+            }`}
+          >
+            <div
+              className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                notifyEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Science Info */}

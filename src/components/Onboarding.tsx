@@ -90,7 +90,7 @@ const SLIDES = [
       </div>
     ),
     title: 'Make better decisions',
-    body: 'Plan ahead with the "what if" simulator and make informed choices about your night.',
+    body: 'Plan ahead with the "what if" simulator and make informed choices about your night. Set your weight and body type in Settings for accurate estimates.',
   },
 ];
 
