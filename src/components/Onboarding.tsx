@@ -63,7 +63,7 @@ const SLIDES = [
       <div className="relative w-40 h-36 mx-auto flex items-center justify-center">
         <div className="text-center">
           <p className="text-5xl font-bold text-accent-yellow tracking-tight animate-glow">4h 22m</p>
-          <p className="text-sm text-text-muted mt-2">until REM-safe sleep</p>
+          <p className="text-sm text-text-muted mt-2">until sleep is clear</p>
         </div>
       </div>
     ),

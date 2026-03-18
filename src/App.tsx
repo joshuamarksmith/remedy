@@ -110,9 +110,7 @@ function App() {
         currentBAC: 0,
         peakBAC: 0,
         timeToSoberMs: 0,
-        timeToREMSafeMs: 0,
         soberAtTimestamp: now,
-        remSafeAtTimestamp: now,
         remReductionMinutes: 0,
         remPercentReduction: 0,
         sleepQuality: 'safe' as const,
@@ -254,7 +252,7 @@ function App() {
                   <div className="mt-3 pt-3 border-t border-border-glass space-y-1">
                     {bacState.timeToLowImpactMs > 0 && (
                       <p className="text-sm text-text-secondary">
-                        Low impact by{' '}
+                        Sleep clear by{' '}
                         <span className="font-medium text-accent-teal">
                           {new Date(bacState.lowImpactAtTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                         </span>
@@ -442,6 +440,7 @@ function App() {
               drinks={drinks}
               profile={profile}
               hypotheticalDrinks={hypotheticalDrinksList}
+              bacState={bacState}
             />
             {drinks.length === 0 && (
               <div className="text-center py-12">

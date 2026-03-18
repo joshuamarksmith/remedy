@@ -2,7 +2,7 @@
 // Based on Widmark Formula + REM sleep impact research
 // Sources: Gardiner et al. 2024, Ebrahim et al. 2013, Colrain et al. 2014
 
-import { BAC_THRESHOLD_DANGER, REM_SAFE_BUFFER_MS, type SleepQuality } from './theme';
+import { BAC_THRESHOLD_DANGER, type SleepQuality } from './theme';
 
 export interface Drink {
   id: string;
@@ -20,9 +20,7 @@ export interface BACState {
   currentBAC: number;
   peakBAC: number;
   timeToSoberMs: number;
-  timeToREMSafeMs: number;
   soberAtTimestamp: number;
-  remSafeAtTimestamp: number;
   remReductionMinutes: number;
   remPercentReduction: number;
   sleepQuality: SleepQuality;
@@ -230,9 +228,6 @@ export function calculateBACState(
   const soberAtTimestamp = findSoberTime(allDrinks, profile);
   const timeToSoberMs = Math.max(0, soberAtTimestamp - now);
 
-  const remSafeAtTimestamp = soberAtTimestamp + REM_SAFE_BUFFER_MS;
-  const timeToREMSafeMs = Math.max(0, remSafeAtTimestamp - now);
-
   // Sleep quality + REM impact: based on BAC at bedtime
   // If bedtime already passed (you stayed up late), use now — you could sleep any moment
   const bedtimeTs = nextBedtime(profile.bedtime);
@@ -241,12 +236,6 @@ export function calculateBACState(
   const bedtimeDose = effectiveDoseGPerKg(bacAtBedtime, profile.sex);
   const { minutes: remReductionMinutes, percent: remPercentReduction } = remImpact(bedtimeDose);
 
-  let sleepQuality: SleepQuality = 'safe';
-  if (remSafeAtTimestamp > effectiveBedtime) {
-    // Won't be REM-safe by bedtime — severity based on BAC at bedtime
-    sleepQuality = bacAtBedtime > BAC_THRESHOLD_DANGER ? 'danger' : 'caution';
-  }
-
   // Find "low impact" time — when REM loss drops below 10 minutes
   const lowImpactThreshold = lowImpactBACThreshold(profile.sex);
   const lowImpactAtTimestamp = currentBAC > lowImpactThreshold
@@ -254,13 +243,17 @@ export function calculateBACState(
     : now;
   const timeToLowImpactMs = Math.max(0, lowImpactAtTimestamp - now);
 
+  let sleepQuality: SleepQuality = 'safe';
+  if (lowImpactAtTimestamp > effectiveBedtime) {
+    // REM will still be meaningfully impacted at bedtime — severity based on BAC
+    sleepQuality = bacAtBedtime > BAC_THRESHOLD_DANGER ? 'danger' : 'caution';
+  }
+
   return {
     currentBAC,
     peakBAC,
     timeToSoberMs,
-    timeToREMSafeMs,
     soberAtTimestamp,
-    remSafeAtTimestamp,
     remReductionMinutes,
     remPercentReduction,
     sleepQuality,

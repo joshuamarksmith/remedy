@@ -157,8 +157,8 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
             reduces REM by ~40 minutes.
           </p>
           <p>
-            <strong className="text-text-secondary">REM-safe time</strong> = time until
-            BAC reaches zero + 1 hour buffer for sleep architecture to normalize.
+            <strong className="text-text-secondary">Sleep clear</strong> = when remaining alcohol
+            would reduce REM by less than 10 minutes — a negligible impact.
           </p>
           <p className="pt-1 border-t border-border-glass">
             Sources: Ebrahim et al. 2013, Colrain et al. 2014, Gardiner et al. 2024

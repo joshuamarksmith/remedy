@@ -3,7 +3,7 @@
 // BAC thresholds (from Ebrahim et al. 2013, Gardiner et al. 2024)
 export const BAC_THRESHOLD_CAUTION = 0.02; // measurable REM suppression
 export const BAC_THRESHOLD_DANGER = 0.05; // significant REM suppression
-export const REM_SAFE_BUFFER_MS = 60 * 60 * 1000; // 1 hour after BAC=0
+
 
 export type SleepQuality = 'safe' | 'caution' | 'danger';
 
@@ -41,7 +41,7 @@ export const EVENT_STYLES: Record<string, EventStyle> = {
   hypothetical: { bg: 'bg-accent-blue/40 border border-accent-blue/60', text: 'text-accent-blue/60', icon: '○' },
   now: { bg: 'bg-white/80', text: 'text-white', icon: '◆' },
   sober: { bg: 'bg-accent-yellow', text: 'text-accent-yellow', icon: '◎' },
-  'rem-safe': { bg: 'bg-accent-green', text: 'text-accent-green', icon: '✦' },
+  'sleep-clear': { bg: 'bg-accent-green', text: 'text-accent-green', icon: '✦' },
 };
 
 // Format helpers
