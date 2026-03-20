@@ -38,6 +38,12 @@ const SLIDES = [
     body: 'Alcohol suppresses REM sleep for hours. Remedy tells you exactly when it\'s safe to sleep well.',
   },
   {
+    visual: null, // Disclaimer slide uses custom layout
+    title: 'Important disclaimer',
+    body: '',
+    isDisclaimer: true,
+  },
+  {
     visual: (
       <div className="relative w-36 h-36 mx-auto">
         <svg viewBox="0 0 120 120" className="w-full h-full">
@@ -98,8 +104,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
   const [animating, setAnimating] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   const isLast = current === SLIDES.length - 1;
+  const slide = SLIDES[current];
+  const isDisclaimer = 'isDisclaimer' in slide && slide.isDisclaimer;
 
   const goTo = useCallback((next: number) => {
     if (animating || next === current) return;
@@ -120,13 +129,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     }
   }, [current, isLast, goTo, onComplete]);
 
-  const slide = SLIDES[current];
-
   return (
     <div className="min-h-dvh flex flex-col bg-bg-primary">
-      {/* Skip */}
+      {/* Skip — hidden on disclaimer slide */}
       <div className="flex justify-end px-5 pt-5">
-        {!isLast && (
+        {!isLast && !isDisclaimer && (
           <button
             onClick={onComplete}
             className="text-sm text-text-muted press-bounce px-2 py-1"
@@ -150,20 +157,65 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             direction === 'right' ? 'onboarding-slide-right' : 'onboarding-slide-left'
           }`}
         >
-          {/* Visual */}
-          <div className="mb-8">
-            {slide.visual}
-          </div>
+          {isDisclaimer ? (
+            /* Disclaimer slide — custom layout */
+            <div className="text-left">
+              <h2 className="text-xl font-semibold text-text-primary mb-4 text-center">
+                {slide.title}
+              </h2>
+              <div className="space-y-3 text-sm text-text-secondary leading-relaxed">
+                <p>
+                  Remedy is for <strong className="text-text-primary">informational and educational purposes only</strong>.
+                  It is not a medical device and does not provide medical advice, diagnosis, or treatment.
+                </p>
+                <p>
+                  BAC estimates are <strong className="text-text-primary">approximate</strong> and
+                  vary based on factors not captured here, including food intake, medications, hydration,
+                  liver health, tolerance, and genetic variation.
+                </p>
+                <p className="text-accent-red/90 font-medium">
+                  Never use this app to determine whether it is safe to drive, operate machinery,
+                  or make any safety-critical decision.
+                </p>
+                <p>
+                  If you are concerned about your alcohol consumption, please consult a healthcare
+                  professional.
+                </p>
+              </div>
+              <button
+                onClick={() => setDisclaimerAccepted(!disclaimerAccepted)}
+                className="mt-5 flex items-center gap-3 w-full text-left"
+              >
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${
+                  disclaimerAccepted
+                    ? 'bg-accent-teal border-accent-teal'
+                    : 'border-white/30 bg-transparent'
+                }`}>
+                  {disclaimerAccepted && <span className="text-bg-primary text-xs font-bold">✓</span>}
+                </div>
+                <span className="text-sm text-text-secondary">
+                  I understand this app is not medical advice
+                </span>
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Visual */}
+              <div className="mb-8">
+                {slide.visual}
+              </div>
 
-          {/* Text */}
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-text-primary mb-2">
-              {slide.title}
-            </h2>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              {slide.body}
-            </p>
-          </div>
+              {/* Text */}
+              <div className="text-center">
+                <h2 className="text-xl font-semibold text-text-primary mb-2">
+                  {slide.title}
+                </h2>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  {slide.body}
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -184,12 +236,17 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           ))}
         </div>
 
-        {/* CTA */}
+        {/* CTA — disabled on disclaimer until accepted */}
         <button
           onClick={next}
-          className="w-full py-3.5 rounded-2xl font-semibold text-base press-bounce transition-all duration-300 bg-accent-teal text-bg-primary"
+          disabled={isDisclaimer && !disclaimerAccepted}
+          className={`w-full py-3.5 rounded-2xl font-semibold text-base press-bounce transition-all duration-300 ${
+            isDisclaimer && !disclaimerAccepted
+              ? 'bg-white/10 text-text-muted cursor-not-allowed'
+              : 'bg-accent-teal text-bg-primary'
+          }`}
         >
-          {isLast ? 'Get Started' : 'Next'}
+          {isLast ? 'Get Started' : isDisclaimer ? 'I Agree' : 'Next'}
         </button>
       </div>
     </div>

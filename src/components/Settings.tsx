@@ -273,15 +273,28 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
       </div>
       {/* Disclaimer */}
       <div className="card p-4">
-        <p className="text-xs text-text-muted leading-relaxed">
-          <span className="font-medium text-text-secondary">Disclaimer:</span>{' '}
-          Remedy is for informational and educational purposes only. BAC estimates
-          are approximate and vary based on many factors not captured here (food,
-          medications, metabolism, hydration). This app is not medical advice and
-          should never be used to determine fitness to drive or operate machinery.
-          When in doubt, don't drive. If you're concerned about your drinking,
-          talk to a healthcare professional.
-        </p>
+        <div className="space-y-2 text-xs text-text-muted leading-relaxed">
+          <p>
+            <span className="font-medium text-text-secondary">Disclaimer:</span>{' '}
+            Remedy is for informational and educational purposes only. It is not a
+            medical device and does not provide medical advice, diagnosis, or treatment.
+          </p>
+          <p>
+            BAC estimates are approximate and vary based on many factors not captured
+            here (food intake, medications, hydration, liver health, tolerance,
+            genetic variation). Actual impairment may differ significantly from
+            displayed estimates.
+          </p>
+          <p className="font-medium text-red-400/80">
+            Never use this app to determine whether it is safe to drive, operate
+            machinery, or make any safety-critical decision.
+          </p>
+          <p>
+            If you are concerned about your alcohol consumption, consult a healthcare
+            professional or contact SAMHSA's National Helpline at 1-800-662-4357
+            (free, confidential, 24/7).
+          </p>
+        </div>
       </div>
     </div>
   );
