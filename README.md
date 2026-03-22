@@ -21,14 +21,9 @@ If you are concerned about your alcohol consumption, please consult a healthcare
 
 ## What it does
 
-- **Log drinks** with one tap (standard) or custom amounts (e.g. 1.5 standard drinks)
-- **Real-time BAC** calculated using the Widmark formula, updating every second
-- **REM-safe countdown** — how long until alcohol clears enough for normal REM sleep
-- **REM impact estimate** — minutes of REM lost and percentage reduction if you sleep now
-- **"What if I have one more?"** — toggle hypothetical drinks to see projected impact
-- **BAC curve chart** with color-coded REM zones (safe / reduced / blocked)
-- **Timeline** of drink events, BAC milestones, and projected sober/REM-safe times
-- **Undo** last drink within 5 seconds
+- **Log drinks** and see real-time BAC, REM impact, and a countdown to REM-safe sleep
+- **"What if I have one more?"** — toggle a hypothetical drink to preview the impact
+- **BAC curve chart** with color-coded REM zones and a timeline of milestones
 
 ## The science
 
