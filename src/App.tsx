@@ -361,13 +361,13 @@ function App() {
                 </span>
                 <button
                   onClick={() => setWhatIfMode(!whatIfMode)}
-                  className={`w-12 h-7 rounded-full transition-colors relative ${
+                  className={`w-12 h-7 shrink-0 rounded-full transition-colors relative overflow-hidden ${
                     whatIfMode ? 'bg-accent-blue' : 'bg-white/10'
                   }`}
                 >
                   <div
                     className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-transform ${
-                      whatIfMode ? 'translate-x-6' : 'translate-x-1'
+                      whatIfMode ? 'translate-x-[1.375rem]' : 'translate-x-1'
                     }`}
                   />
                 </button>

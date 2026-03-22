@@ -137,13 +137,13 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
                 }
               }
             }}
-            className={`w-12 h-7 rounded-full transition-colors relative ${
+            className={`w-12 h-7 shrink-0 rounded-full transition-colors relative overflow-hidden ${
               notifyEnabled ? 'bg-accent-teal' : 'bg-white/10'
             }`}
           >
             <div
               className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                notifyEnabled ? 'translate-x-6' : 'translate-x-1'
+                notifyEnabled ? 'translate-x-[1.375rem]' : 'translate-x-1'
               }`}
             />
           </button>
@@ -166,13 +166,13 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
           </div>
           <button
             onClick={() => onUpdate({ ...profile, experimentalSleep: !profile.experimentalSleep })}
-            className={`w-12 h-7 rounded-full transition-colors relative ${
+            className={`w-12 h-7 shrink-0 rounded-full transition-colors relative overflow-hidden ${
               profile.experimentalSleep ? 'bg-accent-teal' : 'bg-white/10'
             }`}
           >
             <div
               className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                profile.experimentalSleep ? 'translate-x-6' : 'translate-x-1'
+                profile.experimentalSleep ? 'translate-x-[1.375rem]' : 'translate-x-1'
               }`}
             />
           </button>
