@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   calculateBACState,
-  formatCountdown,
-  formatBAC,
   generateId,
   type Drink,
   type BACState,
@@ -230,38 +228,36 @@ function App() {
             <div className={`card p-4 text-center border transition-all duration-500 ${statusBorder}`}>
               {bacState.sleepQuality === 'safe' ? (
                 <>
-                  <p className="text-sm text-text-secondary mb-1">Tonight's REM sleep</p>
-                  <p className={`text-4xl font-bold tracking-tight transition-colors duration-500 ${statusColor}`}>
-                    Clear
+                  <p className={`text-lg font-semibold transition-colors duration-500 ${statusColor}`}>
+                    Your sleep is on track tonight
                   </p>
-                  {bacState.currentBAC >= 0.001 && (
-                    <p className="text-xs text-text-muted mt-2">
-                      BAC {formatBAC(bacState.currentBAC)} · cleared for minimal REM impact
-                    </p>
-                  )}
+                  <p className="text-sm text-text-secondary mt-1">
+                    {bacState.currentBAC >= 0.001
+                      ? 'You\u2019re still processing alcohol, but it won\u2019t noticeably affect your deep sleep.'
+                      : 'No alcohol in your system. Sleep well!'}
+                  </p>
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-text-secondary mb-1">Tonight's REM sleep</p>
-                  <p className={`text-4xl font-bold tracking-tight transition-colors duration-500 ${statusColor} ${bacState.sleepQuality === 'danger' ? 'animate-glow' : ''}`}>
-                    −{Math.round(bacState.remReductionMinutes)}min
+                  <p className={`text-lg font-semibold transition-colors duration-500 ${statusColor} ${bacState.sleepQuality === 'danger' ? 'animate-glow' : ''}`}>
+                    {bacState.sleepQuality === 'danger'
+                      ? 'Your sleep will be significantly affected'
+                      : 'Your sleep will be affected tonight'}
                   </p>
-                  <p className="text-xs text-text-muted mt-2">
-                    REM lost if you sleep at your usual time
+                  <p className="text-sm text-text-secondary mt-1">
+                    Sleeping now would cost you ~{Math.round(bacState.remReductionMinutes)} minutes of deep sleep.
                   </p>
-                  <div className="mt-3 pt-3 border-t border-border-glass space-y-1">
-                    {bacState.timeToLowImpactMs > 0 && (
+                  {bacState.timeToLowImpactMs > 0 && (
+                    <div className="mt-3 pt-3 border-t border-border-glass">
                       <p className="text-sm text-text-secondary">
-                        Sleep clear by{' '}
-                        <span className="font-medium text-accent-teal">
+                        Wait until{' '}
+                        <span className="font-semibold text-accent-teal">
                           {new Date(bacState.lowImpactAtTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                         </span>
+                        {' '}for better sleep
                       </p>
-                    )}
-                    <p className="text-xs text-text-muted">
-                      BAC {formatBAC(bacState.currentBAC)} · sober in {formatCountdown(bacState.timeToSoberMs)}
-                    </p>
-                  </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
