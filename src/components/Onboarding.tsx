@@ -35,7 +35,7 @@ const SLIDES = [
       </div>
     ),
     title: 'Sleep better tonight',
-    body: 'Alcohol suppresses REM sleep for hours. Remedy tells you exactly when it\'s safe to sleep well.',
+    body: 'Alcohol suppresses REM sleep for hours. Remedy helps you understand the impact and make smarter decisions.',
   },
   {
     visual: null, // Disclaimer slide uses custom layout
