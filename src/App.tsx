@@ -233,33 +233,47 @@ function App() {
                   </p>
                   <p className="text-sm text-text-secondary mt-1">
                     {bacState.currentBAC >= 0.001
-                      ? 'You\u2019re still processing alcohol, but it won\u2019t noticeably affect your deep sleep.'
+                      ? 'You\u2019re still processing alcohol, but it won\u2019t noticeably affect your sleep quality.'
                       : 'No alcohol in your system. Sleep well!'}
                   </p>
                 </>
-              ) : (
-                <>
-                  <p className={`text-lg font-semibold transition-colors duration-500 ${statusColor} ${bacState.sleepQuality === 'danger' ? 'animate-glow' : ''}`}>
-                    {bacState.sleepQuality === 'danger'
-                      ? 'Your sleep will be significantly affected'
-                      : 'Your sleep will be affected tonight'}
-                  </p>
-                  <p className="text-sm text-text-secondary mt-1">
-                    Sleeping now would cost you ~{Math.round(bacState.remReductionMinutes)} minutes of deep sleep.
-                  </p>
-                  {bacState.timeToLowImpactMs > 0 && (
+              ) : (() => {
+                // Is "wait until X" realistic? If the clear time is more than 3 hours
+                // past bedtime, staying up that long is worse than sleeping with alcohol.
+                const waitHours = bacState.timeToLowImpactMs / (1000 * 60 * 60);
+                const clearTimeIsRealistic = bacState.timeToLowImpactMs > 0 && waitHours <= 3;
+
+                return (
+                  <>
+                    <p className={`text-lg font-semibold transition-colors duration-500 ${statusColor} ${bacState.sleepQuality === 'danger' ? 'animate-glow' : ''}`}>
+                      {bacState.sleepQuality === 'danger'
+                        ? 'Tonight\u2019s sleep will take a hit'
+                        : 'Your sleep will be lighter tonight'}
+                    </p>
+                    <p className="text-sm text-text-secondary mt-1">
+                      {bacState.sleepQuality === 'danger'
+                        ? 'Alcohol is disrupting your body\u2019s ability to get restorative sleep.'
+                        : `Sleeping now would cost you ~${Math.round(bacState.remReductionMinutes)} minutes of restorative sleep.`}
+                    </p>
                     <div className="mt-3 pt-3 border-t border-border-glass">
-                      <p className="text-sm text-text-secondary">
-                        Wait until{' '}
-                        <span className="font-semibold text-accent-teal">
-                          {new Date(bacState.lowImpactAtTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                        </span>
-                        {' '}for better sleep
-                      </p>
+                      {clearTimeIsRealistic ? (
+                        <p className="text-sm text-text-secondary">
+                          Wait until{' '}
+                          <span className="font-semibold text-accent-teal">
+                            {new Date(bacState.lowImpactAtTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                          </span>
+                          {' '}for better sleep
+                        </p>
+                      ) : (
+                        <p className="text-sm text-text-secondary">
+                          Go to bed at your normal time — staying up won{'\u2019'}t help.
+                          Drink water and rest.
+                        </p>
+                      )}
                     </div>
-                  )}
-                </>
-              )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* BAC Chart */}
