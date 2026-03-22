@@ -274,7 +274,7 @@ function App() {
                     <p className="text-sm text-text-secondary mt-1">
                       {bacState.sleepQuality === 'danger'
                         ? 'Alcohol is disrupting your body\u2019s ability to get restorative sleep.'
-                        : `Sleeping now would cost you ~${Math.round(bacState.remReductionMinutes)} minutes of restorative sleep.`}
+                        : `You could lose ~${Math.round(bacState.remReductionMinutes)} minutes of restorative sleep tonight.`}
                     </p>
                     {clearTimeIsRealistic && (
                       <div className="mt-3 pt-3 border-t border-border-glass">
