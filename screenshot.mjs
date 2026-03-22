@@ -19,32 +19,27 @@ await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 
 // --- NUX Onboarding ---
-// Should show first slide ("Sleep better tonight")
+// Slide 1: "Sleep better tonight"
 await page.screenshot({ path: 'assets/screenshot-onboarding-1.png', clip });
 
-// Slide 2: Disclaimer
+// Slide 2: "Real-time BAC tracking"
 await page.click('button:has-text("Next")');
 await page.waitForTimeout(500);
 await page.screenshot({ path: 'assets/screenshot-onboarding-2.png', clip });
 
-// Accept disclaimer and advance
+// Slide 3: "Time it right"
+await page.click('button:has-text("Next")');
+await page.waitForTimeout(500);
+
+// Slide 4: "See the what if"
+await page.click('button:has-text("Next")');
+await page.waitForTimeout(500);
+
+// Slide 5: Disclaimer — accept and Get Started
+await page.click('button:has-text("Next")');
+await page.waitForTimeout(500);
 await page.click('text=I understand this app is not medical advice');
 await page.waitForTimeout(300);
-await page.click('button:has-text("I Agree")');
-await page.waitForTimeout(500);
-
-// Slide 3: Real-time BAC tracking
-await page.screenshot({ path: 'assets/screenshot-onboarding-3.png', clip });
-
-// Advance through remaining slides
-await page.click('button:has-text("Next")');
-await page.waitForTimeout(500);
-
-// Slide 4: Know when to stop
-await page.click('button:has-text("Next")');
-await page.waitForTimeout(500);
-
-// Slide 5: Make better decisions — click Get Started
 await page.click('button:has-text("Get Started")');
 await page.waitForTimeout(1000);
 
