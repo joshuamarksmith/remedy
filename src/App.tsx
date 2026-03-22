@@ -73,6 +73,7 @@ function App() {
   const [customAmount, setCustomAmount] = useState<string>('');
   const [drinkPulse, setDrinkPulse] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showSetupPrompt, setShowSetupPrompt] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [tick, setTick] = useState(0); // force re-render every second
 
@@ -219,6 +220,8 @@ function App() {
         onComplete={() => {
           setOnboarded();
           setShowOnboarding(false);
+          setActiveTab('settings');
+          setShowSetupPrompt(true);
         }}
       />
     );
@@ -274,7 +277,7 @@ function App() {
                     <p className="text-sm text-text-secondary mt-1">
                       {bacState.sleepQuality === 'danger'
                         ? 'Alcohol is disrupting your body\u2019s ability to get restorative sleep.'
-                        : `Sleeping now would cost you ~${Math.round(bacState.remReductionMinutes)} minutes of restorative sleep.`}
+                        : `You could lose ~${Math.round(bacState.remReductionMinutes)} minutes of restorative sleep tonight.`}
                     </p>
                     {clearTimeIsRealistic && (
                       <div className="mt-3 pt-3 border-t border-border-glass">
@@ -491,12 +494,14 @@ function App() {
         )}
 
         {activeTab === 'log' && <DrinkLog drinks={drinks} onRemove={removeDrink} />}
-        {activeTab === 'settings' && <Settings profile={profile} onUpdate={updateProfile} onReset={() => {
+        {activeTab === 'settings' && <Settings profile={profile} onUpdate={updateProfile} showSetupPrompt={showSetupPrompt} onReset={() => {
                   resetApp();
                   setShowOnboarding(true);
                   setDrinks([]);
                   setProfile(loadProfile());
                   setSleepRecord(null);
+                  setWhatIfMode(false);
+                  setWhatIfDrinks(1);
                   setActiveTab('home');
                 }} onAddHistorical={(timestamp, standardDrinks) => {
                   const drink = { id: generateId(), timestamp, standardDrinks };
@@ -515,7 +520,7 @@ function App() {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); setShowSetupPrompt(false); }}
               className={`relative flex flex-col items-center gap-0.5 px-4 py-2 transition-all duration-200 ${
                 activeTab === tab.id ? 'text-accent-teal' : 'text-text-muted'
               }`}

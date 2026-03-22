@@ -38,12 +38,6 @@ const SLIDES = [
     body: 'Alcohol suppresses REM sleep for hours. Remedy helps you understand the impact and make smarter decisions.',
   },
   {
-    visual: null, // Disclaimer slide uses custom layout
-    title: 'Important disclaimer',
-    body: '',
-    isDisclaimer: true,
-  },
-  {
     visual: (
       <div className="relative w-36 h-36 mx-auto">
         <svg viewBox="0 0 120 120" className="w-full h-full">
@@ -62,19 +56,20 @@ const SLIDES = [
       </div>
     ),
     title: 'Real-time BAC tracking',
-    body: 'Log drinks and watch your blood alcohol level update live, powered by the Widmark formula.',
+    body: 'Log drinks and see your estimated blood alcohol level update in real time.',
   },
   {
     visual: (
-      <div className="relative w-40 h-36 mx-auto flex items-center justify-center">
+      <div className="relative w-48 h-36 mx-auto flex items-center justify-center">
         <div className="text-center">
-          <p className="text-5xl font-bold text-accent-yellow tracking-tight animate-glow">4h 22m</p>
-          <p className="text-sm text-text-muted mt-2">until sleep is clear</p>
+          <p className="text-sm text-text-secondary mb-1">Wait until</p>
+          <p className="text-5xl font-bold text-accent-teal tracking-tight">11:30<span className="text-2xl ml-1">PM</span></p>
+          <p className="text-sm text-text-secondary mt-1">for better sleep</p>
         </div>
       </div>
     ),
-    title: 'Know when to stop',
-    body: 'A live countdown shows exactly when alcohol will stop affecting your sleep — so you can plan your night.',
+    title: 'Time it right',
+    body: 'See exactly when alcohol will stop affecting your sleep — so you can plan your evening.',
   },
   {
     visual: (
@@ -95,8 +90,14 @@ const SLIDES = [
         </div>
       </div>
     ),
-    title: 'Make better decisions',
-    body: 'Plan ahead with the "what if" simulator and make informed choices about your night. Set your weight and body type in Settings for accurate estimates.',
+    title: 'See the \u201cwhat if\u201d',
+    body: 'Wondering about one more drink? The simulator shows how it would affect your sleep tonight.',
+  },
+  {
+    visual: null, // Disclaimer slide uses custom layout
+    title: 'Before you start',
+    body: '',
+    isDisclaimer: true,
   },
 ];
 
@@ -106,7 +107,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [animating, setAnimating] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
-  const isLast = current === SLIDES.length - 1;
+  const disclaimerIndex = SLIDES.length - 1;
+  const isLast = current === disclaimerIndex;
   const slide = SLIDES[current];
   const isDisclaimer = 'isDisclaimer' in slide && slide.isDisclaimer;
 
@@ -133,9 +135,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     <div className="min-h-dvh flex flex-col bg-bg-primary">
       {/* Skip — hidden on disclaimer slide */}
       <div className="flex justify-end px-5 pt-5">
-        {!isLast && !isDisclaimer && (
+        {!isDisclaimer && (
           <button
-            onClick={onComplete}
+            onClick={() => goTo(disclaimerIndex)}
             className="text-sm text-text-muted press-bounce px-2 py-1"
           >
             Skip
@@ -246,7 +248,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               : 'bg-accent-teal text-bg-primary'
           }`}
         >
-          {isLast ? 'Get Started' : isDisclaimer ? 'I Agree' : 'Next'}
+          {isDisclaimer ? 'Get Started' : 'Next'}
         </button>
       </div>
     </div>
