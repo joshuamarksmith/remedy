@@ -491,7 +491,14 @@ function App() {
         )}
 
         {activeTab === 'log' && <DrinkLog drinks={drinks} onRemove={removeDrink} />}
-        {activeTab === 'settings' && <Settings profile={profile} onUpdate={updateProfile} onReset={() => { resetApp(); window.location.reload(); }} onAddHistorical={(timestamp, standardDrinks) => {
+        {activeTab === 'settings' && <Settings profile={profile} onUpdate={updateProfile} onReset={() => {
+                  resetApp();
+                  setShowOnboarding(true);
+                  setDrinks([]);
+                  setProfile(loadProfile());
+                  setSleepRecord(null);
+                  setActiveTab('home');
+                }} onAddHistorical={(timestamp, standardDrinks) => {
                   const drink = { id: generateId(), timestamp, standardDrinks };
                   const isToday = addHistoricalDrink(drink);
                   if (isToday) setDrinks(loadDrinks());
