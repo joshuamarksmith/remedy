@@ -66,15 +66,16 @@ const SLIDES = [
   },
   {
     visual: (
-      <div className="relative w-40 h-36 mx-auto flex items-center justify-center">
+      <div className="relative w-48 h-36 mx-auto flex items-center justify-center">
         <div className="text-center">
-          <p className="text-5xl font-bold text-accent-yellow tracking-tight animate-glow">4h 22m</p>
-          <p className="text-sm text-text-muted mt-2">until sleep is clear</p>
+          <p className="text-sm text-text-secondary mb-1">Wait until</p>
+          <p className="text-5xl font-bold text-accent-teal tracking-tight">11:30<span className="text-2xl ml-1">PM</span></p>
+          <p className="text-sm text-text-secondary mt-1">for better sleep</p>
         </div>
       </div>
     ),
     title: 'Know when to stop',
-    body: 'A live countdown shows exactly when alcohol will stop affecting your sleep — so you can plan your night.',
+    body: 'See exactly when alcohol will stop affecting your sleep — so you can plan your night.',
   },
   {
     visual: (
