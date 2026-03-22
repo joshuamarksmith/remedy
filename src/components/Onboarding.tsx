@@ -69,7 +69,7 @@ const SLIDES = [
       </div>
     ),
     title: 'Time it right',
-    body: 'See exactly when alcohol will stop affecting your sleep — so you can plan your evening.',
+    body: 'See exactly when alcohol will stop affecting your sleep, so you can plan your evening.',
   },
   {
     visual: (
