@@ -255,8 +255,8 @@ function App() {
                         ? 'Alcohol is disrupting your body\u2019s ability to get restorative sleep.'
                         : `Sleeping now would cost you ~${Math.round(bacState.remReductionMinutes)} minutes of restorative sleep.`}
                     </p>
-                    <div className="mt-3 pt-3 border-t border-border-glass">
-                      {clearTimeIsRealistic ? (
+                    {clearTimeIsRealistic && (
+                      <div className="mt-3 pt-3 border-t border-border-glass">
                         <p className="text-sm text-text-secondary">
                           Wait until{' '}
                           <span className="font-semibold text-accent-teal">
@@ -264,13 +264,8 @@ function App() {
                           </span>
                           {' '}for better sleep
                         </p>
-                      ) : (
-                        <p className="text-sm text-text-secondary">
-                          Go to bed at your normal time — staying up won{'\u2019'}t help.
-                          Drink water and rest.
-                        </p>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </>
                 );
               })()}
