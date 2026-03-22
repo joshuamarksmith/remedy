@@ -1,9 +1,10 @@
-import type { Drink, UserProfile } from './bac';
+import type { Drink, UserProfile, SleepRecord } from './bac';
 
 const DRINKS_KEY = 'remedy_drinks';
 const PROFILE_KEY = 'remedy_profile';
 const SESSION_KEY = 'remedy_session_date';
 const ONBOARDED_KEY = 'remedy_onboarded';
+const SLEEP_KEY = 'remedy_sleep';
 
 const DEFAULT_PROFILE: UserProfile = {
   weightKg: 75,
@@ -121,6 +122,34 @@ export function setOnboarded(): void {
 }
 
 /**
+ * Load the single stored sleep record (if it matches the requested date).
+ * Only one record is ever kept — this is a spot-check, not a history.
+ */
+export function loadSleepRecord(date: string): SleepRecord | null {
+  try {
+    const raw = localStorage.getItem(SLEEP_KEY);
+    if (!raw) return null;
+    const record = JSON.parse(raw) as SleepRecord;
+    return record.date === date ? record : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save a sleep record. Overwrites any previous record — we only
+ * keep one at a time. This is intentionally ephemeral: no history,
+ * no trends, just "how'd last night go?"
+ */
+export function saveSleepRecord(record: SleepRecord): void {
+  try {
+    localStorage.setItem(SLEEP_KEY, JSON.stringify(record));
+  } catch {
+    // silently fail
+  }
+}
+
+/**
  * Clear all app data and return to first-run state.
  */
 export function resetApp(): void {
@@ -129,6 +158,7 @@ export function resetApp(): void {
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(ONBOARDED_KEY);
   localStorage.removeItem('remedy_history');
+  localStorage.removeItem(SLEEP_KEY);
 }
 
 /**

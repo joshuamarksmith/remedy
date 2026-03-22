@@ -5,7 +5,7 @@ import {
   type Drink,
   type BACState,
 } from './lib/bac';
-import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink } from './lib/storage';
+import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink, loadSleepRecord, saveSleepRecord } from './lib/storage';
 import { scheduleREMClearNotification, cancelREMClearNotification } from './lib/notifications';
 import { Onboarding } from './components/Onboarding';
 import type { UserProfile } from './lib/bac';
@@ -15,6 +15,8 @@ import { BACChart } from './components/BACChart';
 import { Timeline } from './components/Timeline';
 import { DrinkLog } from './components/DrinkLog';
 import { Settings } from './components/Settings';
+import { SleepEntry } from './components/SleepEntry';
+import type { SleepRecord } from './lib/bac';
 
 type Tab = 'home' | 'timeline' | 'log' | 'settings';
 
@@ -73,6 +75,16 @@ function App() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [tick, setTick] = useState(0); // force re-render every second
+
+  // "Last night" = yesterday's date for sleep entry
+  const lastNightDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+  }, []);
+  const [sleepRecord, setSleepRecord] = useState<SleepRecord | null>(() =>
+    profile.experimentalSleep ? loadSleepRecord(lastNightDate) : null
+  );
   const pulseTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const undoTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -144,6 +156,15 @@ function App() {
   const updateProfile = useCallback((p: UserProfile) => {
     setProfile(p);
     saveProfile(p);
+    // Load sleep record when experimental sleep is toggled on
+    if (p.experimentalSleep && !profile.experimentalSleep) {
+      setSleepRecord(loadSleepRecord(lastNightDate));
+    }
+  }, [profile.experimentalSleep, lastNightDate]);
+
+  const handleSaveSleep = useCallback((record: SleepRecord) => {
+    saveSleepRecord(record);
+    setSleepRecord(record);
   }, []);
 
   const addDrink = useCallback(
@@ -424,6 +445,16 @@ function App() {
                 </div>
               )}
             </div>
+
+            {/* Sleep Tracking (Experimental) */}
+            {profile.experimentalSleep && (
+              <SleepEntry
+                date={lastNightDate}
+                existing={sleepRecord}
+                bacState={bacState}
+                onSave={handleSaveSleep}
+              />
+            )}
 
             {/* BAC Chart */}
             <BACChart

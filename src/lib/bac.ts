@@ -14,6 +14,14 @@ export interface UserProfile {
   weightKg: number;
   sex: 'male' | 'female';
   bedtime: string; // HH:MM format
+  experimentalSleep?: boolean;
+}
+
+export interface SleepRecord {
+  date: string; // YYYY-MM-DD
+  remHours: number;
+  deepSleepHours: number;
+  enteredAt: number; // unix ms
 }
 
 export interface BACState {
