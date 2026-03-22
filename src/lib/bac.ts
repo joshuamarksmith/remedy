@@ -212,8 +212,9 @@ function remImpact(doseGPerKg: number): { minutes: number; percent: number } {
  * Calculate the full BAC state including REM impact.
  *
  * REM impact is based on the alcohol still in your system, not total consumed.
- * Sleep quality reflects BAC at your configured bedtime — if you'll be sober
- * by bedtime, you're safe regardless of how much you drank earlier.
+ * Sleep quality reflects BAC at your configured bedtime — if BAC will be below
+ * the low-impact threshold by bedtime, REM sleep is safe regardless of earlier drinking.
+ * Note: "safe" means minimal REM impact, NOT that BAC has reached zero.
  */
 export function calculateBACState(
   drinks: Drink[],

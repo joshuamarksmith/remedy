@@ -236,7 +236,7 @@ function App() {
                   </p>
                   {bacState.currentBAC >= 0.001 && (
                     <p className="text-xs text-text-muted mt-2">
-                      BAC {formatBAC(bacState.currentBAC)} · sober well before bedtime
+                      BAC {formatBAC(bacState.currentBAC)} · cleared for minimal REM impact
                     </p>
                   )}
                 </>
