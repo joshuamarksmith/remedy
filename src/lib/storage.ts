@@ -122,34 +122,28 @@ export function setOnboarded(): void {
 }
 
 /**
- * Load last night's sleep record (if any).
+ * Load the single stored sleep record (if it matches the requested date).
+ * Only one record is ever kept — this is a spot-check, not a history.
  */
 export function loadSleepRecord(date: string): SleepRecord | null {
   try {
     const raw = localStorage.getItem(SLEEP_KEY);
     if (!raw) return null;
-    const records = JSON.parse(raw) as SleepRecord[];
-    return records.find((r) => r.date === date) ?? null;
+    const record = JSON.parse(raw) as SleepRecord;
+    return record.date === date ? record : null;
   } catch {
     return null;
   }
 }
 
 /**
- * Save a sleep record. Keeps last 90 entries.
+ * Save a sleep record. Overwrites any previous record — we only
+ * keep one at a time. This is intentionally ephemeral: no history,
+ * no trends, just "how'd last night go?"
  */
 export function saveSleepRecord(record: SleepRecord): void {
   try {
-    const raw = localStorage.getItem(SLEEP_KEY);
-    const records = raw ? (JSON.parse(raw) as SleepRecord[]) : [];
-    const idx = records.findIndex((r) => r.date === record.date);
-    if (idx >= 0) {
-      records[idx] = record;
-    } else {
-      records.push(record);
-    }
-    if (records.length > 90) records.splice(0, records.length - 90);
-    localStorage.setItem(SLEEP_KEY, JSON.stringify(records));
+    localStorage.setItem(SLEEP_KEY, JSON.stringify(record));
   } catch {
     // silently fail
   }

@@ -13,7 +13,6 @@ interface SleepEntryProps {
 
 /** Baseline REM from Ohayon et al. 2004 (~20-25% of 8h sleep) */
 const BASELINE_REM_HOURS = 1.6;
-const BASELINE_DEEP_HOURS = 1.0;
 
 export const SleepEntry = memo(function SleepEntry({ date, existing, bacState, onSave }: SleepEntryProps) {
   const [remHours, setRemHours] = useState(() => existing?.remHours?.toString() ?? '');
@@ -25,21 +24,17 @@ export const SleepEntry = memo(function SleepEntry({ date, existing, bacState, o
 
   const handleSave = () => {
     if (!canSave) return;
-    const record: SleepRecord = {
+    onSave({
       date,
       remHours: parseFloat(remHours),
       deepSleepHours: parseFloat(deepHours),
       enteredAt: Date.now(),
-    };
-    onSave(record);
+    });
     setSaved(true);
   };
 
-  const predictedRemLoss = bacState.remReductionMinutes;
-  const predictedRemHours = Math.max(0, BASELINE_REM_HOURS - predictedRemLoss / 60);
-
+  const predictedRemHours = Math.max(0, BASELINE_REM_HOURS - bacState.remReductionMinutes / 60);
   const actualRem = parseFloat(remHours);
-  const actualDeep = parseFloat(deepHours);
 
   return (
     <div className="card p-4 space-y-3">
@@ -94,46 +89,28 @@ export const SleepEntry = memo(function SleepEntry({ date, existing, bacState, o
 
       {saved && !isNaN(actualRem) && (
         <div className="space-y-2 pt-2 border-t border-border-glass animate-slide-up">
-          <p className="text-xs text-text-muted font-medium">vs. predicted</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="text-center">
               <p className="text-lg font-bold text-text-primary">{actualRem.toFixed(1)}h</p>
-              <p className="text-[11px] text-text-muted">actual REM</p>
+              <p className="text-[11px] text-text-muted">your REM</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-text-primary">{predictedRemHours.toFixed(1)}h</p>
-              <p className="text-[11px] text-text-muted">predicted REM</p>
+              <p className="text-[11px] text-text-muted">we predicted</p>
             </div>
           </div>
 
-          {predictedRemLoss > 0 && (
-            <div className="text-center">
-              {actualRem < BASELINE_REM_HOURS - 0.1 ? (
-                <p className="text-xs text-accent-yellow">
-                  REM was {((BASELINE_REM_HOURS - actualRem) * 60).toFixed(0)}min below baseline
-                  {Math.abs(actualRem - predictedRemHours) < 0.2 && ' — close to predicted'}
-                </p>
-              ) : (
-                <p className="text-xs text-accent-green">
-                  REM held up despite drinking — nice
-                </p>
-              )}
-            </div>
-          )}
+          <p className="text-xs text-text-muted text-center">
+            {Math.abs(actualRem - predictedRemHours) < 0.3
+              ? 'Pretty close — the model tracked well last night'
+              : actualRem > predictedRemHours
+                ? 'You beat the prediction — the model was too pessimistic'
+                : 'Model was optimistic — your REM took a bigger hit than expected'}
+          </p>
 
-          {!isNaN(actualDeep) && (
-            <div className="text-center">
-              {actualDeep < BASELINE_DEEP_HOURS - 0.1 ? (
-                <p className="text-xs text-text-muted">
-                  Deep sleep was {((BASELINE_DEEP_HOURS - actualDeep) * 60).toFixed(0)}min below typical
-                </p>
-              ) : (
-                <p className="text-xs text-text-muted">
-                  Deep sleep looks normal
-                </p>
-              )}
-            </div>
-          )}
+          <p className="text-[10px] text-text-muted/50 text-center">
+            This resets each day — it's just a quick spot-check, not a trend
+          </p>
         </div>
       )}
     </div>
