@@ -8,6 +8,7 @@ import {
   type BACState,
 } from './lib/bac';
 import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink } from './lib/storage';
+import { scheduleREMClearNotification, cancelREMClearNotification } from './lib/notifications';
 import { Onboarding } from './components/Onboarding';
 import type { UserProfile } from './lib/bac';
 import { STATUS_TEXT_CLASS, STATUS_BORDER_CLASS, formatDrinkCount } from './lib/theme';
@@ -109,9 +110,7 @@ function App() {
         currentBAC: 0,
         peakBAC: 0,
         timeToSoberMs: 0,
-        timeToREMSafeMs: 0,
         soberAtTimestamp: now,
-        remSafeAtTimestamp: now,
         remReductionMinutes: 0,
         remPercentReduction: 0,
         sleepQuality: 'safe' as const,
@@ -121,6 +120,16 @@ function App() {
     }
     return calculateBACState(drinks, profile, hypotheticalDrinksList);
   }, [drinks, profile, hypotheticalDrinksList]);
+
+  // Schedule/cancel REM-clear notification when BAC state changes
+  useEffect(() => {
+    if (bacState.sleepQuality === 'safe' || bacState.lowImpactAtTimestamp <= Date.now()) {
+      cancelREMClearNotification();
+    } else {
+      scheduleREMClearNotification(bacState.lowImpactAtTimestamp);
+    }
+    return () => cancelREMClearNotification();
+  }, [bacState.lowImpactAtTimestamp, bacState.sleepQuality]);
 
   // Persist on change (not in effects — direct in handlers)
   const updateDrinks = useCallback(
@@ -243,7 +252,7 @@ function App() {
                   <div className="mt-3 pt-3 border-t border-border-glass space-y-1">
                     {bacState.timeToLowImpactMs > 0 && (
                       <p className="text-sm text-text-secondary">
-                        Low impact by{' '}
+                        Sleep clear by{' '}
                         <span className="font-medium text-accent-teal">
                           {new Date(bacState.lowImpactAtTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                         </span>
@@ -309,14 +318,19 @@ function App() {
 
             {/* Undo toast */}
             {lastAddedId && (
-              <div className="card p-3 flex items-center justify-between animate-slide-up">
-                <span className="text-sm text-text-secondary">Drink added</span>
-                <button
-                  onClick={undoLastDrink}
-                  className="text-sm font-medium text-accent-teal active:scale-95 transition-transform"
-                >
-                  Undo
-                </button>
+              <div className="card p-3 animate-slide-up space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-secondary">Drink added</span>
+                  <button
+                    onClick={undoLastDrink}
+                    className="text-sm font-medium text-accent-teal active:scale-95 transition-transform"
+                  >
+                    Undo
+                  </button>
+                </div>
+                {drinks.length % 2 === 0 && drinks.length > 0 && (
+                  <p className="text-xs text-text-muted">Have a glass of water too</p>
+                )}
               </div>
             )}
 
@@ -426,6 +440,7 @@ function App() {
               drinks={drinks}
               profile={profile}
               hypotheticalDrinks={hypotheticalDrinksList}
+              bacState={bacState}
             />
             {drinks.length === 0 && (
               <div className="text-center py-12">

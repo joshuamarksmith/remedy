@@ -2,22 +2,23 @@ import { useMemo, memo } from 'react';
 import {
   type Drink,
   type UserProfile,
+  type BACState,
   calculateBAC,
-  findSoberTime,
   formatCountdown,
   formatBAC,
 } from '../lib/bac';
-import { REM_SAFE_BUFFER_MS, EVENT_STYLES, formatTime } from '../lib/theme';
+import { EVENT_STYLES, formatTime } from '../lib/theme';
 
 interface TimelineProps {
   drinks: Drink[];
   profile: UserProfile;
   hypotheticalDrinks?: Drink[];
+  bacState: BACState;
 }
 
 interface TimelineEvent {
   timestamp: number;
-  type: 'drink' | 'sober' | 'rem-safe' | 'now' | 'hypothetical';
+  type: 'drink' | 'sober' | 'sleep-clear' | 'now' | 'hypothetical';
   label: string;
   sublabel?: string;
 }
@@ -26,6 +27,7 @@ export const Timeline = memo(function Timeline({
   drinks,
   profile,
   hypotheticalDrinks = [],
+  bacState,
 }: TimelineProps) {
   const events = useMemo(() => {
     const allDrinks = [...drinks, ...hypotheticalDrinks];
@@ -60,23 +62,21 @@ export const Timeline = memo(function Timeline({
     });
 
     if (allDrinks.length > 0) {
-      const soberAt = findSoberTime(allDrinks, profile);
-      if (soberAt > now) {
+      if (bacState.soberAtTimestamp > now) {
         evts.push({
-          timestamp: soberAt,
+          timestamp: bacState.soberAtTimestamp,
           type: 'sober',
           label: 'BAC reaches zero',
-          sublabel: `In ${formatCountdown(soberAt - now)}`,
+          sublabel: `In ${formatCountdown(bacState.soberAtTimestamp - now)}`,
         });
       }
 
-      const remSafeAt = soberAt + REM_SAFE_BUFFER_MS;
-      if (remSafeAt > now) {
+      if (bacState.lowImpactAtTimestamp > now) {
         evts.push({
-          timestamp: remSafeAt,
-          type: 'rem-safe',
-          label: 'REM-safe to sleep',
-          sublabel: `In ${formatCountdown(remSafeAt - now)}`,
+          timestamp: bacState.lowImpactAtTimestamp,
+          type: 'sleep-clear',
+          label: 'Sleep clear',
+          sublabel: `In ${formatCountdown(bacState.lowImpactAtTimestamp - now)}`,
         });
       }
     }

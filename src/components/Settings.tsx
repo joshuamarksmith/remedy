@@ -1,5 +1,11 @@
 import { memo, useState } from 'react';
 import type { UserProfile } from '../lib/bac';
+import {
+  isNotificationEnabled,
+  setNotificationEnabled,
+  requestPermission,
+  cancelREMClearNotification,
+} from '../lib/notifications';
 
 const LBS_PER_KG = 2.20462;
 
@@ -23,6 +29,7 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
   const [editingWeight, setEditingWeight] = useState(false);
   const displayWeight = editingWeight ? weightInput : String(kgToLbs(profile.weightKg));
   const [confirmReset, setConfirmReset] = useState(false);
+  const [notifyEnabled, setNotifyEnabled] = useState(() => isNotificationEnabled());
   const [showAddPast, setShowAddPast] = useState(false);
   const [pastDate, setPastDate] = useState('');
   const [pastTime, setPastTime] = useState('20:00');
@@ -102,6 +109,40 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
         />
       </div>
 
+      {/* REM-Clear Notification */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-text-secondary">REM-clear notification</p>
+            <p className="text-xs text-text-muted mt-0.5">Get notified when your sleep is no longer impacted</p>
+          </div>
+          <button
+            onClick={async () => {
+              if (isNotificationEnabled()) {
+                setNotificationEnabled(false);
+                cancelREMClearNotification();
+                setNotifyEnabled(false);
+              } else {
+                const granted = await requestPermission();
+                if (granted) {
+                  setNotificationEnabled(true);
+                  setNotifyEnabled(true);
+                }
+              }
+            }}
+            className={`w-12 h-7 rounded-full transition-colors relative ${
+              notifyEnabled ? 'bg-accent-teal' : 'bg-white/10'
+            }`}
+          >
+            <div
+              className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                notifyEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
       {/* Science Info */}
       <div className="card p-4">
         <h3 className="text-sm font-medium text-text-secondary mb-2">How it works</h3>
@@ -116,8 +157,8 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
             reduces REM by ~40 minutes.
           </p>
           <p>
-            <strong className="text-text-secondary">REM-safe time</strong> = time until
-            BAC reaches zero + 1 hour buffer for sleep architecture to normalize.
+            <strong className="text-text-secondary">Sleep clear</strong> = when remaining alcohol
+            would reduce REM by less than 10 minutes — a negligible impact.
           </p>
           <p className="pt-1 border-t border-border-glass">
             Sources: Ebrahim et al. 2013, Colrain et al. 2014, Gardiner et al. 2024
@@ -232,15 +273,28 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
       </div>
       {/* Disclaimer */}
       <div className="card p-4">
-        <p className="text-xs text-text-muted leading-relaxed">
-          <span className="font-medium text-text-secondary">Disclaimer:</span>{' '}
-          Remedy is for informational and educational purposes only. BAC estimates
-          are approximate and vary based on many factors not captured here (food,
-          medications, metabolism, hydration). This app is not medical advice and
-          should never be used to determine fitness to drive or operate machinery.
-          When in doubt, don't drive. If you're concerned about your drinking,
-          talk to a healthcare professional.
-        </p>
+        <div className="space-y-2 text-xs text-text-muted leading-relaxed">
+          <p>
+            <span className="font-medium text-text-secondary">Disclaimer:</span>{' '}
+            Remedy is for informational and educational purposes only. It is not a
+            medical device and does not provide medical advice, diagnosis, or treatment.
+          </p>
+          <p>
+            BAC estimates are approximate and vary based on many factors not captured
+            here (food intake, medications, hydration, liver health, tolerance,
+            genetic variation). Actual impairment may differ significantly from
+            displayed estimates.
+          </p>
+          <p className="font-medium text-red-400/80">
+            Never use this app to determine whether it is safe to drive, operate
+            machinery, or make any safety-critical decision.
+          </p>
+          <p>
+            If you are concerned about your alcohol consumption, consult a healthcare
+            professional or contact SAMHSA's National Helpline at 1-800-662-4357
+            (free, confidential, 24/7).
+          </p>
+        </div>
       </div>
     </div>
   );

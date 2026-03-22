@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Capacitor iOS build artifacts (keep project structure, ignore builds)
+ios/App/App/public
+ios/App/Pods
+ios/DerivedData
+*.xcworkspace/xcuserdata
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
