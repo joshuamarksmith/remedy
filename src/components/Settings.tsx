@@ -22,9 +22,10 @@ interface SettingsProps {
   onUpdate: (profile: UserProfile) => void;
   onReset: () => void;
   onAddHistorical: (timestamp: number, standardDrinks: number) => void;
+  onNotificationsChanged: (enabled: boolean) => void;
 }
 
-export const Settings = memo(function Settings({ profile, onUpdate, onReset, onAddHistorical }: SettingsProps) {
+export const Settings = memo(function Settings({ profile, onUpdate, onReset, onAddHistorical, onNotificationsChanged }: SettingsProps) {
   const [weightInput, setWeightInput] = useState(() => String(kgToLbs(profile.weightKg)));
   const [editingWeight, setEditingWeight] = useState(false);
   const displayWeight = editingWeight ? weightInput : String(kgToLbs(profile.weightKg));
@@ -35,6 +36,7 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
   const [pastTime, setPastTime] = useState('20:00');
   const [pastAmount, setPastAmount] = useState('1');
   const [pastConfirmation, setPastConfirmation] = useState('');
+  const [notifyDenied, setNotifyDenied] = useState(false);
 
   return (
     <div className="stagger-children space-y-4 py-2">
@@ -122,25 +124,35 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
                 setNotificationEnabled(false);
                 cancelREMClearNotification();
                 setNotifyEnabled(false);
+                onNotificationsChanged(false);
               } else {
+                setNotifyDenied(false);
                 const granted = await requestPermission();
                 if (granted) {
                   setNotificationEnabled(true);
                   setNotifyEnabled(true);
+                  onNotificationsChanged(true);
+                } else {
+                  setNotifyDenied(true);
                 }
               }
             }}
-            className={`w-12 h-7 rounded-full transition-colors relative ${
+            className={`w-12 h-7 shrink-0 rounded-full transition-colors relative overflow-hidden ${
               notifyEnabled ? 'bg-accent-teal' : 'bg-white/10'
             }`}
           >
             <div
               className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                notifyEnabled ? 'translate-x-6' : 'translate-x-1'
+                notifyEnabled ? 'translate-x-[1.375rem]' : 'translate-x-1'
               }`}
             />
           </button>
         </div>
+        {notifyDenied && (
+          <p className="text-xs text-accent-red mt-2 animate-slide-up">
+            Notifications are blocked. Check your browser or device settings to allow them.
+          </p>
+        )}
       </div>
 
       {/* Experimental Features */}
@@ -154,13 +166,13 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
           </div>
           <button
             onClick={() => onUpdate({ ...profile, experimentalSleep: !profile.experimentalSleep })}
-            className={`w-12 h-7 rounded-full transition-colors relative ${
+            className={`w-12 h-7 shrink-0 rounded-full transition-colors relative overflow-hidden ${
               profile.experimentalSleep ? 'bg-accent-teal' : 'bg-white/10'
             }`}
           >
             <div
               className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                profile.experimentalSleep ? 'translate-x-6' : 'translate-x-1'
+                profile.experimentalSleep ? 'translate-x-[1.375rem]' : 'translate-x-1'
               }`}
             />
           </button>
