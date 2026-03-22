@@ -271,13 +271,6 @@ function App() {
               })()}
             </div>
 
-            {/* BAC Chart */}
-            <BACChart
-              drinks={drinks}
-              profile={profile}
-              hypotheticalDrinks={hypotheticalDrinksList}
-            />
-
             {/* Add Drinks */}
             <div className="card p-4 space-y-3">
               <button
@@ -431,6 +424,13 @@ function App() {
                 </div>
               )}
             </div>
+
+            {/* BAC Chart */}
+            <BACChart
+              drinks={drinks}
+              profile={profile}
+              hypotheticalDrinks={hypotheticalDrinksList}
+            />
           </div>
         )}
 
