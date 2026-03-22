@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 
-const CLIP_HEIGHT = 720; // Standard height for all screenshots
 const VIEWPORT_WIDTH = 390;
+const CLIP_HEIGHT = 844; // iPhone 14/15/16 ratio (19.5:9)
 
 const browser = await chromium.launch({
   executablePath: '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome',
@@ -66,30 +66,14 @@ await page.waitForTimeout(300);
 await page.click('button:has-text("Add")');
 await page.waitForTimeout(1500);
 
-// Scroll down a bit to show the BAC chart area better
-await page.evaluate(() => window.scrollBy(0, 60));
-await page.waitForTimeout(500);
-
 // Home with drinks
 await page.screenshot({ path: 'assets/screenshot-with-drinks.png', clip });
-
-// Scroll back up for what-if toggle
-await page.evaluate(() => window.scrollTo(0, 0));
-await page.waitForTimeout(300);
 
 // Toggle what-if mode
 const toggle = page.locator('button').filter({ has: page.locator('div.rounded-full') });
 await toggle.first().click();
 await page.waitForTimeout(1000);
-
-// Scroll down to show chart with what-if overlay
-await page.evaluate(() => window.scrollBy(0, 60));
-await page.waitForTimeout(500);
 await page.screenshot({ path: 'assets/screenshot-whatif.png', clip });
-
-// Scroll back up before switching tabs
-await page.evaluate(() => window.scrollTo(0, 0));
-await page.waitForTimeout(300);
 
 // Timeline tab
 await page.locator('nav button', { hasText: 'Timeline' }).click();
