@@ -22,9 +22,10 @@ interface SettingsProps {
   onUpdate: (profile: UserProfile) => void;
   onReset: () => void;
   onAddHistorical: (timestamp: number, standardDrinks: number) => void;
+  onNotificationsChanged: (enabled: boolean) => void;
 }
 
-export const Settings = memo(function Settings({ profile, onUpdate, onReset, onAddHistorical }: SettingsProps) {
+export const Settings = memo(function Settings({ profile, onUpdate, onReset, onAddHistorical, onNotificationsChanged }: SettingsProps) {
   const [weightInput, setWeightInput] = useState(() => String(kgToLbs(profile.weightKg)));
   const [editingWeight, setEditingWeight] = useState(false);
   const displayWeight = editingWeight ? weightInput : String(kgToLbs(profile.weightKg));
@@ -35,6 +36,7 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
   const [pastTime, setPastTime] = useState('20:00');
   const [pastAmount, setPastAmount] = useState('1');
   const [pastConfirmation, setPastConfirmation] = useState('');
+  const [notifyDenied, setNotifyDenied] = useState(false);
 
   return (
     <div className="stagger-children space-y-4 py-2">
@@ -122,11 +124,16 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
                 setNotificationEnabled(false);
                 cancelREMClearNotification();
                 setNotifyEnabled(false);
+                onNotificationsChanged(false);
               } else {
+                setNotifyDenied(false);
                 const granted = await requestPermission();
                 if (granted) {
                   setNotificationEnabled(true);
                   setNotifyEnabled(true);
+                  onNotificationsChanged(true);
+                } else {
+                  setNotifyDenied(true);
                 }
               }
             }}
@@ -141,6 +148,11 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
             />
           </button>
         </div>
+        {notifyDenied && (
+          <p className="text-xs text-accent-red mt-2 animate-slide-up">
+            Notifications are blocked. Check your browser or device settings to allow them.
+          </p>
+        )}
       </div>
 
       {/* Experimental Features */}

@@ -502,6 +502,10 @@ function App() {
                   const drink = { id: generateId(), timestamp, standardDrinks };
                   const isToday = addHistoricalDrink(drink);
                   if (isToday) setDrinks(loadDrinks());
+                }} onNotificationsChanged={(enabled) => {
+                  if (enabled && bacState.sleepQuality !== 'safe' && bacState.lowImpactAtTimestamp > Date.now()) {
+                    scheduleREMClearNotification(bacState.lowImpactAtTimestamp);
+                  }
                 }} />}
       </main>
 
