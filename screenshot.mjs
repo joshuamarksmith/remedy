@@ -45,6 +45,13 @@ await page.waitForTimeout(1000);
 
 // --- Main App Screenshots ---
 
+// After onboarding, app lands on Settings with setup prompt
+await page.screenshot({ path: 'assets/screenshot-settings-setup.png', clip });
+
+// Navigate to Home tab
+await page.locator('nav button', { hasText: 'Home' }).click();
+await page.waitForTimeout(500);
+
 // Screenshot empty home
 await page.screenshot({ path: 'assets/screenshot-home.png', clip });
 
