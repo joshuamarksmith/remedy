@@ -1,8 +1,8 @@
 # **rem**edy
 
-Track your drinks. Protect your REM sleep.
+Track your drinks proactively. Sleep better.
 
-**remedy** is a mobile-first PWA that logs alcoholic drinks and shows you in real time how they affect your sleep. It calculates your BAC, estimates how much REM sleep you'll lose, and tells you when it's safe to sleep without impact.
+**remedy** is a mobile-first PWA that estimates your BAC in real time and projects how tonight's drinks will affect your REM sleep. Most tracking is retroactive — remedy works in the moment, while you're still drinking, so you can make smarter decisions before bed.
 
 <p align="center">
   <img src="assets/screenshot-onboarding-1.png" width="200" alt="Onboarding intro" />
