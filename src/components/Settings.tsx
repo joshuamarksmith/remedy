@@ -143,6 +143,31 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
         </div>
       </div>
 
+      {/* Experimental Features */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-text-secondary">Sleep tracking</p>
+            <p className="text-xs text-text-muted mt-0.5">
+              Log actual REM &amp; deep sleep to compare against predictions
+            </p>
+          </div>
+          <button
+            onClick={() => onUpdate({ ...profile, experimentalSleep: !profile.experimentalSleep })}
+            className={`w-12 h-7 rounded-full transition-colors relative ${
+              profile.experimentalSleep ? 'bg-accent-teal' : 'bg-white/10'
+            }`}
+          >
+            <div
+              className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                profile.experimentalSleep ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        <p className="text-[10px] text-accent-blue/60 mt-2 uppercase tracking-wider font-medium">Experimental</p>
+      </div>
+
       {/* Science Info */}
       <div className="card p-4">
         <h3 className="text-sm font-medium text-text-secondary mb-2">How it works</h3>

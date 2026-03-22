@@ -1,9 +1,10 @@
-import type { Drink, UserProfile } from './bac';
+import type { Drink, UserProfile, SleepRecord } from './bac';
 
 const DRINKS_KEY = 'remedy_drinks';
 const PROFILE_KEY = 'remedy_profile';
 const SESSION_KEY = 'remedy_session_date';
 const ONBOARDED_KEY = 'remedy_onboarded';
+const SLEEP_KEY = 'remedy_sleep';
 
 const DEFAULT_PROFILE: UserProfile = {
   weightKg: 75,
@@ -121,6 +122,40 @@ export function setOnboarded(): void {
 }
 
 /**
+ * Load last night's sleep record (if any).
+ */
+export function loadSleepRecord(date: string): SleepRecord | null {
+  try {
+    const raw = localStorage.getItem(SLEEP_KEY);
+    if (!raw) return null;
+    const records = JSON.parse(raw) as SleepRecord[];
+    return records.find((r) => r.date === date) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save a sleep record. Keeps last 90 entries.
+ */
+export function saveSleepRecord(record: SleepRecord): void {
+  try {
+    const raw = localStorage.getItem(SLEEP_KEY);
+    const records = raw ? (JSON.parse(raw) as SleepRecord[]) : [];
+    const idx = records.findIndex((r) => r.date === record.date);
+    if (idx >= 0) {
+      records[idx] = record;
+    } else {
+      records.push(record);
+    }
+    if (records.length > 90) records.splice(0, records.length - 90);
+    localStorage.setItem(SLEEP_KEY, JSON.stringify(records));
+  } catch {
+    // silently fail
+  }
+}
+
+/**
  * Clear all app data and return to first-run state.
  */
 export function resetApp(): void {
@@ -129,6 +164,7 @@ export function resetApp(): void {
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(ONBOARDED_KEY);
   localStorage.removeItem('remedy_history');
+  localStorage.removeItem(SLEEP_KEY);
 }
 
 /**
