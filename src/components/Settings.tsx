@@ -47,6 +47,9 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
           <p className="text-xs text-text-secondary mt-1">
             Confirm your weight, sex, and usual bedtime below for accurate BAC estimates.
           </p>
+          <p className="text-xs text-text-muted mt-2">
+            All data stays on your device — nothing is ever sent to a server.
+          </p>
         </div>
       )}
       <h2 className="text-sm font-medium text-text-secondary mb-3">Your Profile</h2>
