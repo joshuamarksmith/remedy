@@ -102,14 +102,14 @@ export const SleepEntry = memo(function SleepEntry({ date, existing, bacState, o
 
           <p className="text-xs text-text-muted text-center">
             {Math.abs(actualRem - predictedRemHours) < 0.3
-              ? 'Pretty close — the model tracked well last night'
+              ? 'Pretty close: the model tracked well last night'
               : actualRem > predictedRemHours
-                ? 'You beat the prediction — the model was too pessimistic'
-                : 'Model was optimistic — your REM took a bigger hit than expected'}
+                ? 'You beat the prediction: the model was too pessimistic'
+                : 'Model was optimistic: your REM took a bigger hit than expected'}
           </p>
 
           <p className="text-[10px] text-text-muted/50 text-center">
-            This resets each day — it's just a quick spot-check, not a trend
+            This resets each day. It's just a quick spot-check, not a trend
           </p>
         </div>
       )}

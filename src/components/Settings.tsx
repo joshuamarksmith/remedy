@@ -47,6 +47,9 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
           <p className="text-xs text-text-secondary mt-1">
             Confirm your weight, sex, and usual bedtime below for accurate BAC estimates.
           </p>
+          <p className="text-xs text-text-muted mt-2">
+            All data stays on your device. Nothing is ever sent to a server.
+          </p>
         </div>
       )}
       <h2 className="text-sm font-medium text-text-secondary mb-3">Your Profile</h2>
@@ -204,7 +207,7 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
           </p>
           <p>
             <strong className="text-text-secondary">Sleep clear</strong> = when remaining alcohol
-            would reduce REM by less than 10 minutes — a negligible impact.
+            would reduce REM by less than 10 minutes, a negligible impact.
           </p>
           <p className="pt-1 border-t border-border-glass">
             Sources: Ebrahim et al. 2013, Colrain et al. 2014, Gardiner et al. 2024
