@@ -7,56 +7,37 @@ interface OnboardingProps {
 const SLIDES = [
   {
     visual: (
-      <div className="relative w-44 h-36 mx-auto flex items-center justify-center">
-        <svg viewBox="0 0 160 120" className="w-full h-full">
-          {/* Moon */}
-          <circle cx="80" cy="42" r="28" fill="#2dd4bf" opacity="0.15" />
-          <path
-            d="M68 18a24 24 0 1 0 0 48 20 20 0 0 1 0-48z"
-            fill="#2dd4bf" opacity="0.9"
-          />
-          {/* Stars */}
-          <circle cx="120" cy="22" r="1.5" fill="#94a3b8" opacity="0.7" className="animate-pulse" />
-          <circle cx="38" cy="30" r="1" fill="#94a3b8" opacity="0.5" />
-          <circle cx="130" cy="45" r="1" fill="#94a3b8" opacity="0.4" />
-          {/* Sleep wave - smooth */}
-          <path
-            d="M16 90 Q32 78, 48 90 Q64 102, 80 90 Q96 78, 112 90 Q128 102, 144 90"
-            fill="none" stroke="#2dd4bf" strokeWidth="2.5" strokeLinecap="round"
-            opacity="0.8"
-          />
-          {/* Sleep wave - faded echo */}
-          <path
-            d="M16 100 Q32 92, 48 100 Q64 108, 80 100 Q96 92, 112 100 Q128 108, 144 100"
-            fill="none" stroke="#2dd4bf" strokeWidth="1.5" strokeLinecap="round"
-            opacity="0.25"
-          />
-        </svg>
+      <div className="relative w-48 h-36 mx-auto flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-6xl font-bold text-accent-teal tracking-tight">30</p>
+          <p className="text-sm text-text-secondary mt-1">minutes of REM sleep lost</p>
+        </div>
       </div>
     ),
-    title: 'Sleep better tonight',
-    body: 'Alcohol suppresses REM sleep for hours. Remedy helps you understand the impact and make smarter decisions.',
+    title: 'Did you know?',
+    body: 'Just 2 drinks before bed can cut your REM sleep by 30 minutes. That\u2019s a third of your most restorative sleep, gone.',
   },
   {
     visual: (
-      <div className="relative w-36 h-36 mx-auto">
-        <svg viewBox="0 0 120 120" className="w-full h-full">
-          {/* Outer ring */}
-          <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(45,212,191,0.15)" strokeWidth="6" />
-          <circle
-            cx="60" cy="60" r="52" fill="none" stroke="#2dd4bf" strokeWidth="6"
-            strokeDasharray="327" strokeDashoffset="82" strokeLinecap="round"
-            transform="rotate(-90 60 60)"
-            className="gauge-ring"
-          />
-          {/* Center text */}
-          <text x="60" y="55" textAnchor="middle" fill="#f1f5f9" fontSize="24" fontWeight="700" fontFamily="system-ui">0.04</text>
-          <text x="60" y="72" textAnchor="middle" fill="#94a3b8" fontSize="11" fontFamily="system-ui">BAC</text>
-        </svg>
+      <div className="relative w-48 h-36 mx-auto flex items-center justify-center">
+        <div className="space-y-2.5 w-full">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+            <span className="text-lg">😴</span>
+            <div className="text-sm text-text-secondary">Grogginess that coffee can't fix</div>
+          </div>
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+            <span className="text-lg">🧠</span>
+            <div className="text-sm text-text-secondary">Worse focus and memory</div>
+          </div>
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+            <span className="text-lg">😟</span>
+            <div className="text-sm text-text-secondary">Lower mood the next day</div>
+          </div>
+        </div>
       </div>
     ),
-    title: 'Real-time BAC tracking',
-    body: 'Log drinks and see your estimated blood alcohol level update in real time.',
+    title: 'What that feels like',
+    body: 'Poor REM sleep doesn\u2019t just mean tiredness. It affects your focus, mood, and how your brain processes the day.',
   },
   {
     visual: (
@@ -68,33 +49,11 @@ const SLIDES = [
         </div>
       </div>
     ),
-    title: 'Time it right',
-    body: 'See exactly when alcohol will stop affecting your sleep, so you can plan your evening.',
+    title: 'Remedy shows the tradeoff',
+    body: 'Log your drinks and see exactly when alcohol will stop affecting your sleep, so you can make an informed call.',
   },
   {
-    visual: (
-      <div className="relative w-48 h-36 mx-auto flex items-center justify-center">
-        <div className="space-y-2.5 w-full">
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-            <div className="w-8 h-8 rounded-full bg-accent-teal/20 flex items-center justify-center text-accent-teal text-xs font-bold">1</div>
-            <div className="text-sm text-text-primary">Log a drink</div>
-          </div>
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-            <div className="w-8 h-8 rounded-full bg-accent-blue/20 flex items-center justify-center text-accent-blue text-xs font-bold">?</div>
-            <div className="text-sm text-text-primary">"What if one more?"</div>
-          </div>
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-            <div className="w-8 h-8 rounded-full bg-accent-green/20 flex items-center justify-center text-accent-green text-xs font-bold">✓</div>
-            <div className="text-sm text-text-primary">Sleep well</div>
-          </div>
-        </div>
-      </div>
-    ),
-    title: 'See the \u201cwhat if\u201d',
-    body: 'Wondering about one more drink? The simulator shows how it would affect your sleep tonight.',
-  },
-  {
-    visual: null, // Disclaimer slide uses custom layout
+    visual: null,
     title: 'Before you start',
     body: '',
     isDisclaimer: true,
@@ -116,7 +75,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     if (animating || next === current) return;
     setDirection(next > current ? 'right' : 'left');
     setAnimating(true);
-    // Short delay so CSS picks up the direction class before transition
     requestAnimationFrame(() => {
       setCurrent(next);
       setTimeout(() => setAnimating(false), 350);
@@ -160,7 +118,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           }`}
         >
           {isDisclaimer ? (
-            /* Disclaimer slide — custom layout */
             <div className="text-left">
               <h2 className="text-xl font-semibold text-text-primary mb-4 text-center">
                 {slide.title}
@@ -238,7 +195,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           ))}
         </div>
 
-        {/* CTA — disabled on disclaimer until accepted */}
+        {/* CTA */}
         <button
           onClick={next}
           disabled={isDisclaimer && !disclaimerAccepted}

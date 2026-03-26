@@ -32,11 +32,7 @@ await page.click('button:has-text("Next")');
 await page.waitForTimeout(500);
 await page.screenshot({ path: 'assets/screenshot-onboarding-3.png', clip });
 
-// Slide 4 + more until disclaimer
-await page.click('button:has-text("Next")');
-await page.waitForTimeout(500);
-
-// Slide 5: Disclaimer — accept and Get Started
+// Slide 4: Disclaimer — accept and Get Started
 await page.click('button:has-text("Next")');
 await page.waitForTimeout(500);
 await page.click('text=I understand this app is not medical advice');

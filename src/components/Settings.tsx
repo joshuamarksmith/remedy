@@ -3,6 +3,8 @@ import type { UserProfile } from '../lib/bac';
 import {
   isNotificationEnabled,
   setNotificationEnabled,
+  isMorningNotifyEnabled,
+  setMorningNotifyEnabled,
   requestPermission,
   cancelREMClearNotification,
 } from '../lib/notifications';
@@ -37,6 +39,9 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
   const [pastAmount, setPastAmount] = useState('1');
   const [pastConfirmation, setPastConfirmation] = useState('');
   const [notifyDenied, setNotifyDenied] = useState(false);
+  const [morningEnabled, setMorningEnabled] = useState(() => isMorningNotifyEnabled());
+  const [morningDenied, setMorningDenied] = useState(false);
+  const [showFullDisclaimer, setShowFullDisclaimer] = useState(false);
 
   return (
     <div className="stagger-children space-y-4 py-2">
@@ -149,6 +154,47 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
           </button>
         </div>
         {notifyDenied && (
+          <p className="text-xs text-accent-red mt-2 animate-slide-up">
+            Notifications are blocked. Check your browser or device settings to allow them.
+          </p>
+        )}
+      </div>
+
+      {/* Morning Summary Notification */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-text-secondary">Morning summary</p>
+            <p className="text-xs text-text-muted mt-0.5">Get a recap of last night's impact at 8 AM</p>
+          </div>
+          <button
+            onClick={async () => {
+              if (isMorningNotifyEnabled()) {
+                setMorningNotifyEnabled(false);
+                setMorningEnabled(false);
+              } else {
+                setMorningDenied(false);
+                const granted = await requestPermission();
+                if (granted) {
+                  setMorningNotifyEnabled(true);
+                  setMorningEnabled(true);
+                } else {
+                  setMorningDenied(true);
+                }
+              }
+            }}
+            className={`w-12 h-7 shrink-0 rounded-full transition-colors relative overflow-hidden ${
+              morningEnabled ? 'bg-accent-teal' : 'bg-white/10'
+            }`}
+          >
+            <div
+              className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                morningEnabled ? 'translate-x-[1.375rem]' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        {morningDenied && (
           <p className="text-xs text-accent-red mt-2 animate-slide-up">
             Notifications are blocked. Check your browser or device settings to allow them.
           </p>
@@ -308,30 +354,40 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
           </div>
         )}
       </div>
-      {/* Disclaimer */}
+      {/* Disclaimer — collapsible */}
       <div className="card p-4">
-        <div className="space-y-2 text-xs text-text-muted leading-relaxed">
-          <p>
-            <span className="font-medium text-text-secondary">Disclaimer:</span>{' '}
-            Remedy is for informational and educational purposes only. It is not a
-            medical device and does not provide medical advice, diagnosis, or treatment.
-          </p>
-          <p>
-            BAC estimates are approximate and vary based on many factors not captured
-            here (food intake, medications, hydration, liver health, tolerance,
-            genetic variation). Actual impairment may differ significantly from
-            displayed estimates.
-          </p>
-          <p className="font-medium text-red-400/80">
-            Never use this app to determine whether it is safe to drive, operate
-            machinery, or make any safety-critical decision.
-          </p>
-          <p>
-            If you are concerned about your alcohol consumption, consult a healthcare
-            professional or contact SAMHSA's National Helpline at 1-800-662-4357
-            (free, confidential, 24/7).
-          </p>
-        </div>
+        <p className="text-xs text-text-muted">
+          Remedy is for educational purposes only.{' '}
+          <button
+            onClick={() => setShowFullDisclaimer(!showFullDisclaimer)}
+            className="text-accent-teal font-medium"
+          >
+            {showFullDisclaimer ? 'Hide disclaimer' : 'View full disclaimer'}
+          </button>
+        </p>
+        {showFullDisclaimer && (
+          <div className="mt-3 space-y-2 text-xs text-text-muted leading-relaxed animate-slide-up">
+            <p>
+              Remedy is for informational and educational purposes only. It is not a
+              medical device and does not provide medical advice, diagnosis, or treatment.
+            </p>
+            <p>
+              BAC estimates are approximate and vary based on many factors not captured
+              here (food intake, medications, hydration, liver health, tolerance,
+              genetic variation). Actual impairment may differ significantly from
+              displayed estimates.
+            </p>
+            <p className="font-medium text-red-400/80">
+              Never use this app to determine whether it is safe to drive, operate
+              machinery, or make any safety-critical decision.
+            </p>
+            <p>
+              If you are concerned about your alcohol consumption, consult a healthcare
+              professional or contact SAMHSA's National Helpline at 1-800-662-4357
+              (free, confidential, 24/7).
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -9,10 +9,10 @@ import {
   type BACState,
 } from './lib/bac';
 import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink, loadSleepRecord, saveSleepRecord, hasProfileNudgeDismissed, dismissProfileNudge } from './lib/storage';
-import { scheduleREMClearNotification, cancelREMClearNotification } from './lib/notifications';
+import { scheduleREMClearNotification, cancelREMClearNotification, scheduleMorningSummary, loadMorningSummary, dismissMorningSummary, type MorningSummary } from './lib/notifications';
 import { Onboarding } from './components/Onboarding';
 import type { UserProfile } from './lib/bac';
-import { STATUS_TEXT_CLASS, STATUS_BORDER_CLASS, formatDrinkCount } from './lib/theme';
+import { STATUS_TEXT_CLASS, STATUS_BORDER_CLASS, formatDrinkCount, formatTime } from './lib/theme';
 import { BACGauge } from './components/BACGauge';
 import { BACChart } from './components/BACChart';
 import { Timeline } from './components/Timeline';
@@ -68,6 +68,7 @@ function App() {
   const [drinkPulse, setDrinkPulse] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showProfileNudge, setShowProfileNudge] = useState(() => !hasProfileNudgeDismissed());
+  const [morningSummary, setMorningSummary] = useState<MorningSummary | null>(() => loadMorningSummary());
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [tick, setTick] = useState(0); // force re-render every second
 
@@ -135,6 +136,14 @@ function App() {
     }
     return () => cancelREMClearNotification();
   }, [bacState.lowImpactAtTimestamp, bacState.sleepQuality]);
+
+  // Schedule morning summary when drinks are logged
+  useEffect(() => {
+    if (drinks.length > 0) {
+      const total = drinks.reduce((sum, d) => sum + d.standardDrinks, 0);
+      scheduleMorningSummary(total, bacState.remReductionMinutes, bacState.peakBAC, bacState.soberAtTimestamp);
+    }
+  }, [drinks.length, bacState.remReductionMinutes, bacState.peakBAC, bacState.soberAtTimestamp]);
 
   // Persist on change (not in effects — direct in handlers)
   const updateDrinks = useCallback(
@@ -256,6 +265,37 @@ function App() {
                     onClick={() => {
                       dismissProfileNudge();
                       setShowProfileNudge(false);
+                    }}
+                    className="text-text-muted hover:text-text-secondary text-lg leading-none shrink-0 mt-0.5"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Morning summary card — shows the morning after a drinking session */}
+            {morningSummary && (
+              <div className="card p-4 border border-accent-blue/30 bg-accent-blue/5 animate-slide-up">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">Last night's recap</p>
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs text-text-secondary">
+                        {morningSummary.drinkCount} {morningSummary.drinkCount === 1 ? 'drink' : 'drinks'} logged
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        REM likely reduced by ~{morningSummary.remReduction} minutes
+                      </p>
+                      <p className="text-xs text-text-muted">
+                        Peak BAC: {morningSummary.peakBAC.toFixed(3)} · Sober at {formatTime(morningSummary.soberAtTimestamp)}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      dismissMorningSummary();
+                      setMorningSummary(null);
                     }}
                     className="text-text-muted hover:text-text-secondary text-lg leading-none shrink-0 mt-0.5"
                   >
