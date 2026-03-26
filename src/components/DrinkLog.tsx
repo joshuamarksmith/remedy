@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import type { Drink } from '../lib/bac';
+import { DRINK_PRESETS, type Drink } from '../lib/bac';
 import { formatTime, formatDrinkCount } from '../lib/theme';
 
 interface DrinkLogProps {
@@ -34,17 +34,24 @@ export const DrinkLog = memo(function DrinkLog({ drinks, onRemove }: DrinkLogPro
         <div key={drink.id} className="card p-3 flex items-center justify-between press-bounce">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-accent-teal/15 flex items-center justify-center">
-              <span className="text-accent-teal font-semibold">
-                {formatDrinkCount(drink.standardDrinks)}
+              <span className="text-accent-teal font-semibold text-lg">
+                {drink.drinkType && drink.drinkType !== 'custom' ? DRINK_PRESETS[drink.drinkType].icon : formatDrinkCount(drink.standardDrinks)}
               </span>
             </div>
             <div>
               <p className="text-sm font-medium text-text-primary">
-                {drink.standardDrinks === 1
-                  ? '1 standard drink'
-                  : `${formatDrinkCount(drink.standardDrinks)} standard drinks`}
+                {drink.drinkType && drink.drinkType !== 'custom'
+                  ? DRINK_PRESETS[drink.drinkType].label
+                  : drink.standardDrinks === 1
+                    ? '1 standard drink'
+                    : `${formatDrinkCount(drink.standardDrinks)} standard drinks`}
               </p>
-              <p className="text-xs text-text-muted">{formatTime(drink.timestamp)}</p>
+              <p className="text-xs text-text-muted">
+                {formatTime(drink.timestamp)}
+                {drink.drinkType && drink.drinkType !== 'custom' && drink.standardDrinks !== 1 && (
+                  <> · {formatDrinkCount(drink.standardDrinks)} std</>
+                )}
+              </p>
             </div>
           </div>
           <button

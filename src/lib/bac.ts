@@ -4,10 +4,20 @@
 
 import { BAC_THRESHOLD_DANGER, type SleepQuality } from './theme';
 
+export type DrinkType = 'beer' | 'wine' | 'cocktail' | 'shot' | 'custom';
+
+export const DRINK_PRESETS: Record<Exclude<DrinkType, 'custom'>, { label: string; standardDrinks: number; icon: string }> = {
+  beer: { label: 'Beer', standardDrinks: 1.0, icon: '🍺' },
+  wine: { label: 'Wine', standardDrinks: 1.2, icon: '🍷' },
+  cocktail: { label: 'Cocktail', standardDrinks: 1.5, icon: '🍸' },
+  shot: { label: 'Shot', standardDrinks: 1.0, icon: '🥃' },
+};
+
 export interface Drink {
   id: string;
   timestamp: number; // unix ms
   standardDrinks: number; // number of standard drinks (1.0 = default)
+  drinkType?: DrinkType; // what kind of drink was logged
 }
 
 export interface UserProfile {

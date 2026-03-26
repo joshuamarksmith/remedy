@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   calculateBACState,
   generateId,
+  DRINK_PRESETS,
   type Drink,
+  type DrinkType,
   type BACState,
 } from './lib/bac';
 import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink, loadSleepRecord, saveSleepRecord } from './lib/storage';
@@ -71,6 +73,7 @@ function App() {
   const [whatIfMode, setWhatIfMode] = useState(false);
   const [whatIfDrinks, setWhatIfDrinks] = useState(1);
   const [customAmount, setCustomAmount] = useState<string>('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
   const [drinkPulse, setDrinkPulse] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showSetupPrompt, setShowSetupPrompt] = useState(false);
@@ -169,11 +172,11 @@ function App() {
   }, []);
 
   const addDrink = useCallback(
-    (standardDrinks: number = 1) => {
+    (standardDrinks: number = 1, drinkType: DrinkType = 'custom') => {
       const id = generateId();
       updateDrinks((prev) => [
         ...prev,
-        { id, timestamp: Date.now(), standardDrinks },
+        { id, timestamp: Date.now(), standardDrinks, drinkType },
       ]);
 
       setLastAddedId(id);
@@ -248,22 +251,29 @@ function App() {
               <BACGauge bac={bacState.currentBAC} quality={bacState.sleepQuality} />
             </div>
 
-            {/* Tonight's Sleep */}
+            {/* Tonight's Sleep — copy cleanup applied */}
             <div className={`card p-4 text-center border transition-all duration-500 ${statusBorder}`}>
-              {bacState.sleepQuality === 'safe' ? (
+              {drinks.length === 0 && bacState.currentBAC < 0.001 ? (
+                <>
+                  <p className={`text-lg font-semibold transition-colors duration-500 ${statusColor}`}>
+                    Log your first drink to start tracking
+                  </p>
+                  <p className="text-sm text-text-secondary mt-1">
+                    See how tonight's drinks affect your sleep
+                  </p>
+                </>
+              ) : bacState.sleepQuality === 'safe' ? (
                 <>
                   <p className={`text-lg font-semibold transition-colors duration-500 ${statusColor}`}>
                     Your sleep is on track tonight
                   </p>
                   <p className="text-sm text-text-secondary mt-1">
                     {bacState.currentBAC >= 0.001
-                      ? 'You\u2019re still processing alcohol, but it won\u2019t noticeably affect your sleep quality.'
+                      ? 'Still clearing alcohol, but your sleep tonight should be fine.'
                       : 'No alcohol in your system. Sleep well!'}
                   </p>
                 </>
               ) : (() => {
-                // Is "wait until X" realistic? If the clear time is more than 3 hours
-                // past bedtime, staying up that long is worse than sleeping with alcohol.
                 const waitHours = bacState.timeToLowImpactMs / (1000 * 60 * 60);
                 const clearTimeIsRealistic = bacState.timeToLowImpactMs > 0 && waitHours <= 3;
 
@@ -295,47 +305,65 @@ function App() {
               })()}
             </div>
 
-            {/* Add Drinks */}
+            {/* Drink-Type Presets */}
             <div className="card p-4 space-y-3">
-              <button
-                onClick={() => addDrink(1)}
-                className={`w-full py-3 rounded-xl text-center press-bounce bg-accent-teal/10 border border-accent-teal/20 hover:border-accent-teal/40 ${
-                  drinkPulse ? 'ring-2 ring-accent-teal/30 animate-drink-pop' : ''
-                }`}
-              >
-                <span className="text-lg font-medium text-accent-teal">+ 1 Standard Drink</span>
-              </button>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.5"
-                  min="0.1"
-                  max="10"
-                  placeholder="e.g. 1.5"
-                  value={customAmount}
-                  onChange={(e) => setCustomAmount(e.target.value)}
-                  className="flex-1 bg-white/5 border border-border-glass rounded-xl px-3 py-2.5 text-text-primary outline-none focus:border-accent-teal/50 text-center text-lg placeholder:text-text-muted/50"
-                />
-                <button
-                  onClick={() => {
-                    const val = parseFloat(customAmount);
-                    if (val > 0) {
-                      addDrink(val);
-                      setCustomAmount('');
-                    }
-                  }}
-                  disabled={!customAmount || parseFloat(customAmount) <= 0 || isNaN(parseFloat(customAmount))}
-                  className="bg-accent-teal/15 text-accent-teal px-5 py-2.5 rounded-xl font-medium disabled:opacity-30 press-bounce"
-                >
-                  Add
-                </button>
+              <div className="grid grid-cols-4 gap-2">
+                {(Object.entries(DRINK_PRESETS) as [Exclude<DrinkType, 'custom'>, typeof DRINK_PRESETS[keyof typeof DRINK_PRESETS]][]).map(([type, preset]) => (
+                  <button
+                    key={type}
+                    onClick={() => addDrink(preset.standardDrinks, type)}
+                    className={`flex flex-col items-center gap-1 py-3 rounded-xl press-bounce bg-accent-teal/10 border border-accent-teal/20 hover:border-accent-teal/40 ${
+                      drinkPulse ? 'ring-1 ring-accent-teal/20' : ''
+                    }`}
+                  >
+                    <span className="text-xl">{preset.icon}</span>
+                    <span className="text-xs font-medium text-accent-teal">{preset.label}</span>
+                    {preset.standardDrinks !== 1.0 && (
+                      <span className="text-[10px] text-text-muted">{preset.standardDrinks} std</span>
+                    )}
+                  </button>
+                ))}
               </div>
 
-              <p className="text-[11px] text-text-muted leading-relaxed">
-                1 standard drink = 12oz beer · 5oz wine · 1.5oz liquor
-              </p>
+              {/* Collapsed custom input */}
+              {showCustomInput ? (
+                <div className="animate-slide-up">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.5"
+                      min="0.1"
+                      max="10"
+                      placeholder="Standard drinks (e.g. 1.5)"
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      className="flex-1 bg-white/5 border border-border-glass rounded-xl px-3 py-2.5 text-text-primary outline-none focus:border-accent-teal/50 text-center text-lg placeholder:text-text-muted/50"
+                    />
+                    <button
+                      onClick={() => {
+                        const val = parseFloat(customAmount);
+                        if (val > 0) {
+                          addDrink(val, 'custom');
+                          setCustomAmount('');
+                          setShowCustomInput(false);
+                        }
+                      }}
+                      disabled={!customAmount || parseFloat(customAmount) <= 0 || isNaN(parseFloat(customAmount))}
+                      className="bg-accent-teal/15 text-accent-teal px-5 py-2.5 rounded-xl font-medium disabled:opacity-30 press-bounce"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowCustomInput(true)}
+                  className="text-xs text-text-muted hover:text-accent-teal transition-colors"
+                >
+                  Custom amount...
+                </button>
+              )}
             </div>
 
             {/* Undo toast */}
@@ -356,7 +384,66 @@ function App() {
               </div>
             )}
 
-            {/* What-If */}
+            {/* Today's Tally — copy cleanup: proper singular/plural, renamed reset */}
+            <div className="card p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-text-secondary">Today</span>
+                <span className={`text-2xl font-bold text-text-primary ${drinkPulse ? 'animate-pop-in' : ''}`}>
+                  {formatDrinkCount(totalDrinks)}
+                </span>
+              </div>
+              <p className="text-xs text-text-muted mt-1">
+                {totalDrinks === 1 ? 'drink' : 'drinks'} logged
+              </p>
+
+              {/* Reset — renamed from "Reset session" to "Clear tonight's drinks" */}
+              {drinks.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-border-glass">
+                  {showResetConfirm ? (
+                    <div className="flex items-center justify-between animate-pop-in">
+                      <span className="text-sm text-accent-red">Clear all drinks?</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={clearSession}
+                          className="px-3 py-1.5 rounded-lg bg-accent-red/15 text-accent-red text-sm font-medium press-bounce"
+                        >
+                          Yes, clear
+                        </button>
+                        <button
+                          onClick={() => setShowResetConfirm(false)}
+                          className="px-3 py-1.5 rounded-lg bg-white/5 text-text-muted text-sm press-bounce"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowResetConfirm(true)}
+                      className="text-sm text-text-muted hover:text-accent-red transition-colors"
+                    >
+                      Clear tonight's drinks
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Sleep Tracking (Experimental) */}
+            {profile.experimentalSleep && (
+              <SleepEntry
+                date={lastNightDate}
+                existing={sleepRecord}
+                bacState={bacState}
+                onSave={handleSaveSleep}
+              />
+            )}
+          </div>
+        )}
+
+        {activeTab === 'timeline' && (
+          <div className="stagger-children space-y-4 py-2">
+            {/* What-If — lives here with the chart for visual context */}
             <div className={`card p-4 transition-all duration-300 ${whatIfMode ? 'border border-accent-blue/20' : ''}`}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-text-secondary">
@@ -404,72 +491,6 @@ function App() {
               )}
             </div>
 
-            {/* Today's Tally */}
-            <div className="card p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-text-secondary">Today</span>
-                <span className={`text-2xl font-bold text-text-primary ${drinkPulse ? 'animate-pop-in' : ''}`}>
-                  {formatDrinkCount(totalDrinks)}
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-1">
-                standard drink{totalDrinks !== 1 ? 's' : ''} logged
-              </p>
-
-              {/* Reset */}
-              {drinks.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-border-glass">
-                  {showResetConfirm ? (
-                    <div className="flex items-center justify-between animate-pop-in">
-                      <span className="text-sm text-accent-red">Clear all drinks?</span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={clearSession}
-                          className="px-3 py-1.5 rounded-lg bg-accent-red/15 text-accent-red text-sm font-medium press-bounce"
-                        >
-                          Yes, clear
-                        </button>
-                        <button
-                          onClick={() => setShowResetConfirm(false)}
-                          className="px-3 py-1.5 rounded-lg bg-white/5 text-text-muted text-sm press-bounce"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setShowResetConfirm(true)}
-                      className="text-sm text-text-muted hover:text-accent-red transition-colors"
-                    >
-                      Reset session
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Sleep Tracking (Experimental) */}
-            {profile.experimentalSleep && (
-              <SleepEntry
-                date={lastNightDate}
-                existing={sleepRecord}
-                bacState={bacState}
-                onSave={handleSaveSleep}
-              />
-            )}
-
-            {/* BAC Chart */}
-            <BACChart
-              drinks={drinks}
-              profile={profile}
-              hypotheticalDrinks={hypotheticalDrinksList}
-            />
-          </div>
-        )}
-
-        {activeTab === 'timeline' && (
-          <div className="stagger-children space-y-4 py-2">
             <BACChart
               drinks={drinks}
               profile={profile}
@@ -481,7 +502,7 @@ function App() {
               hypotheticalDrinks={hypotheticalDrinksList}
               bacState={bacState}
             />
-            {drinks.length === 0 && (
+            {drinks.length === 0 && !whatIfMode && (
               <div className="text-center py-12">
                 <p className="text-4xl mb-4 text-text-muted">⊘</p>
                 <p className="text-text-secondary">No data yet</p>

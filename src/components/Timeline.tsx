@@ -3,6 +3,7 @@ import {
   type Drink,
   type UserProfile,
   type BACState,
+  DRINK_PRESETS,
   calculateBAC,
   formatCountdown,
   formatBAC,
@@ -36,10 +37,14 @@ export const Timeline = memo(function Timeline({
 
     for (const d of drinks) {
       const bac = calculateBAC(drinks, profile, d.timestamp + 100);
+      const preset = d.drinkType && d.drinkType !== 'custom' ? DRINK_PRESETS[d.drinkType] : null;
+      const drinkLabel = preset
+        ? `${preset.icon} ${preset.label}${d.standardDrinks !== preset.standardDrinks ? ` (${d.standardDrinks} std)` : ''}`
+        : `${d.standardDrinks === 1 ? '' : d.standardDrinks + '× '}Drink logged`;
       evts.push({
         timestamp: d.timestamp,
         type: 'drink',
-        label: `${d.standardDrinks === 1 ? '' : d.standardDrinks + '× '}Drink logged`,
+        label: drinkLabel,
         sublabel: `BAC → ${formatBAC(bac)}`,
       });
     }
