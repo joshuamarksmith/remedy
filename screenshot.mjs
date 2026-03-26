@@ -19,19 +19,20 @@ await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 
 // --- NUX Onboarding ---
-// Slide 1: "Sleep better tonight"
+// Slide 1
 await page.screenshot({ path: 'assets/screenshot-onboarding-1.png', clip });
 
-// Slide 2: "Real-time BAC tracking"
+// Slide 2
 await page.click('button:has-text("Next")');
 await page.waitForTimeout(500);
 await page.screenshot({ path: 'assets/screenshot-onboarding-2.png', clip });
 
-// Slide 3: "Time it right"
+// Slide 3
 await page.click('button:has-text("Next")');
 await page.waitForTimeout(500);
+await page.screenshot({ path: 'assets/screenshot-onboarding-3.png', clip });
 
-// Slide 4: "See the what if"
+// Slide 4 + more until disclaimer
 await page.click('button:has-text("Next")');
 await page.waitForTimeout(500);
 
@@ -45,47 +46,32 @@ await page.waitForTimeout(1000);
 
 // --- Main App Screenshots ---
 
-// After onboarding, app lands on Settings with setup prompt
-await page.screenshot({ path: 'assets/screenshot-settings-setup.png', clip });
+// After onboarding, app now lands on Tonight with profile nudge
+await page.screenshot({ path: 'assets/screenshot-tonight-empty.png', clip });
 
-// Navigate to Home tab
-await page.locator('nav button', { hasText: 'Home' }).click();
-await page.waitForTimeout(500);
-
-// Screenshot empty home
-await page.screenshot({ path: 'assets/screenshot-home.png', clip });
-
-// Add 3 standard drinks
-for (let i = 0; i < 3; i++) {
-  await page.click('text=+ 1 Standard Drink');
-  await page.waitForTimeout(400);
-}
-await page.waitForTimeout(1000);
-
-// Add a custom 1.5 drink
-await page.fill('input[type="number"]', '1.5');
-await page.waitForTimeout(300);
-await page.click('button:has-text("Add")');
+// Add drinks using the new preset buttons
+await page.click('button:has-text("Beer")');
+await page.waitForTimeout(400);
+await page.click('button:has-text("Beer")');
+await page.waitForTimeout(400);
+await page.click('button:has-text("Wine")');
+await page.waitForTimeout(400);
+await page.click('button:has-text("Cocktail")');
 await page.waitForTimeout(1500);
 
-// Home with drinks
-await page.screenshot({ path: 'assets/screenshot-with-drinks.png', clip });
+// Tonight with drinks
+await page.screenshot({ path: 'assets/screenshot-tonight-drinks.png', clip });
 
-// Toggle what-if mode
+// Insights tab — milestone cards, what-if, chart, timeline
+await page.locator('nav button', { hasText: 'Insights' }).click();
+await page.waitForTimeout(800);
+await page.screenshot({ path: 'assets/screenshot-insights.png', clip });
+
+// Toggle what-if mode on Insights
 const toggle = page.locator('button').filter({ has: page.locator('div.rounded-full') });
 await toggle.first().click();
 await page.waitForTimeout(1000);
-await page.screenshot({ path: 'assets/screenshot-whatif.png', clip });
-
-// Timeline tab
-await page.locator('nav button', { hasText: 'Timeline' }).click();
-await page.waitForTimeout(800);
-await page.screenshot({ path: 'assets/screenshot-timeline.png', clip });
-
-// Log tab
-await page.locator('nav button', { hasText: 'Log' }).click();
-await page.waitForTimeout(500);
-await page.screenshot({ path: 'assets/screenshot-log.png', clip });
+await page.screenshot({ path: 'assets/screenshot-insights-whatif.png', clip });
 
 // Settings tab
 await page.locator('nav button', { hasText: 'Settings' }).click();
