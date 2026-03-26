@@ -18,16 +18,16 @@ const clip = { x: 0, y: 0, width: VIEWPORT_WIDTH, height: CLIP_HEIGHT };
 await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 
-// --- NUX Onboarding ---
-// Slide 1
+// --- NUX Onboarding (4 slides) ---
+// Slide 1: "Did you know?"
 await page.screenshot({ path: 'assets/screenshot-onboarding-1.png', clip });
 
-// Slide 2
+// Slide 2: "What that feels like"
 await page.click('button:has-text("Next")');
 await page.waitForTimeout(500);
 await page.screenshot({ path: 'assets/screenshot-onboarding-2.png', clip });
 
-// Slide 3
+// Slide 3: "Remedy shows the tradeoff"
 await page.click('button:has-text("Next")');
 await page.waitForTimeout(500);
 await page.screenshot({ path: 'assets/screenshot-onboarding-3.png', clip });
@@ -42,10 +42,10 @@ await page.waitForTimeout(1000);
 
 // --- Main App Screenshots ---
 
-// After onboarding, app now lands on Tonight with profile nudge
+// Tonight (empty) — with profile nudge
 await page.screenshot({ path: 'assets/screenshot-tonight-empty.png', clip });
 
-// Add drinks using the new preset buttons
+// Add drinks using preset buttons
 await page.click('button:has-text("Beer")');
 await page.waitForTimeout(400);
 await page.click('button:has-text("Beer")');
@@ -58,7 +58,7 @@ await page.waitForTimeout(1500);
 // Tonight with drinks
 await page.screenshot({ path: 'assets/screenshot-tonight-drinks.png', clip });
 
-// Insights tab — milestone cards, what-if, chart, timeline
+// Insights tab — milestone cards, chart, timeline
 await page.locator('nav button', { hasText: 'Insights' }).click();
 await page.waitForTimeout(800);
 await page.screenshot({ path: 'assets/screenshot-insights.png', clip });
@@ -69,10 +69,17 @@ await toggle.first().click();
 await page.waitForTimeout(1000);
 await page.screenshot({ path: 'assets/screenshot-insights-whatif.png', clip });
 
-// Settings tab
+// Settings tab — scroll to show morning summary toggle and collapsible disclaimer
 await page.locator('nav button', { hasText: 'Settings' }).click();
 await page.waitForTimeout(500);
 await page.screenshot({ path: 'assets/screenshot-settings.png', clip });
+
+// Scroll down and expand disclaimer
+await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+await page.waitForTimeout(300);
+await page.click('button:has-text("View full disclaimer")');
+await page.waitForTimeout(500);
+await page.screenshot({ path: 'assets/screenshot-settings-disclaimer.png', clip });
 
 await browser.close();
 console.log('All screenshots saved!');
