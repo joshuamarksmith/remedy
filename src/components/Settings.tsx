@@ -23,10 +23,9 @@ interface SettingsProps {
   onReset: () => void;
   onAddHistorical: (timestamp: number, standardDrinks: number) => void;
   onNotificationsChanged: (enabled: boolean) => void;
-  showSetupPrompt?: boolean;
 }
 
-export const Settings = memo(function Settings({ profile, onUpdate, onReset, onAddHistorical, onNotificationsChanged, showSetupPrompt }: SettingsProps) {
+export const Settings = memo(function Settings({ profile, onUpdate, onReset, onAddHistorical, onNotificationsChanged }: SettingsProps) {
   const [weightInput, setWeightInput] = useState(() => String(kgToLbs(profile.weightKg)));
   const [editingWeight, setEditingWeight] = useState(false);
   const displayWeight = editingWeight ? weightInput : String(kgToLbs(profile.weightKg));
@@ -41,17 +40,6 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
 
   return (
     <div className="stagger-children space-y-4 py-2">
-      {showSetupPrompt && (
-        <div className="card p-4 border border-accent-teal/30 bg-accent-teal/5">
-          <p className="text-sm font-medium text-text-primary">Set up your profile</p>
-          <p className="text-xs text-text-secondary mt-1">
-            Confirm your weight, sex, and usual bedtime below for accurate BAC estimates.
-          </p>
-          <p className="text-xs text-text-muted mt-2">
-            All data stays on your device. Nothing is ever sent to a server.
-          </p>
-        </div>
-      )}
       <h2 className="text-sm font-medium text-text-secondary mb-3">Your Profile</h2>
 
       {/* Weight */}

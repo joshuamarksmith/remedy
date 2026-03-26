@@ -1,4 +1,4 @@
-import { useMemo, memo } from 'react';
+import { useMemo, memo, useState, useRef } from 'react';
 import {
   type Drink,
   type UserProfile,
@@ -15,6 +15,7 @@ interface TimelineProps {
   profile: UserProfile;
   hypotheticalDrinks?: Drink[];
   bacState: BACState;
+  onRemoveDrink?: (id: string) => void;
 }
 
 interface TimelineEvent {
@@ -22,6 +23,7 @@ interface TimelineEvent {
   type: 'drink' | 'sober' | 'sleep-clear' | 'now' | 'hypothetical';
   label: string;
   sublabel?: string;
+  drinkId?: string;
 }
 
 export const Timeline = memo(function Timeline({
@@ -29,7 +31,10 @@ export const Timeline = memo(function Timeline({
   profile,
   hypotheticalDrinks = [],
   bacState,
+  onRemoveDrink,
 }: TimelineProps) {
+  const [swipedId, setSwipedId] = useState<string | null>(null);
+  const touchStartX = useRef(0);
   const events = useMemo(() => {
     const allDrinks = [...drinks, ...hypotheticalDrinks];
     const evts: TimelineEvent[] = [];
@@ -46,6 +51,7 @@ export const Timeline = memo(function Timeline({
         type: 'drink',
         label: drinkLabel,
         sublabel: `BAC → ${formatBAC(bac)}`,
+        drinkId: d.id,
       });
     }
 
@@ -108,10 +114,19 @@ export const Timeline = memo(function Timeline({
                 ? ''
                 : 'opacity-70';
 
+          const canSwipe = evt.type === 'drink' && evt.drinkId && onRemoveDrink;
+          const isSwiped = canSwipe && swipedId === evt.drinkId;
+
           return (
             <div
               key={`${evt.type}-${i}`}
               className={`relative flex items-start gap-3 pb-4 last:pb-0 ${opacity}`}
+              onTouchStart={canSwipe ? (e) => { touchStartX.current = e.touches[0].clientX; } : undefined}
+              onTouchEnd={canSwipe ? (e) => {
+                const dx = e.changedTouches[0].clientX - touchStartX.current;
+                if (dx < -60) setSwipedId(evt.drinkId!);
+                else if (dx > 30) setSwipedId(null);
+              } : undefined}
             >
               <div className="absolute -left-6 mt-1">
                 <div
@@ -125,9 +140,19 @@ export const Timeline = memo(function Timeline({
                   <span className={`text-sm font-medium ${style.text}`}>
                     {evt.label}
                   </span>
-                  <span className="text-xs text-text-muted shrink-0">
-                    {formatTime(evt.timestamp)}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isSwiped && (
+                      <button
+                        onClick={() => { onRemoveDrink(evt.drinkId!); setSwipedId(null); }}
+                        className="text-xs text-accent-red font-medium animate-pop-in"
+                      >
+                        Remove
+                      </button>
+                    )}
+                    <span className="text-xs text-text-muted">
+                      {formatTime(evt.timestamp)}
+                    </span>
+                  </div>
                 </div>
                 {evt.sublabel && (
                   <p className="text-xs text-text-muted mt-0.5">{evt.sublabel}</p>

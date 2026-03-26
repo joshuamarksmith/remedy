@@ -5,6 +5,7 @@ const PROFILE_KEY = 'remedy_profile';
 const SESSION_KEY = 'remedy_session_date';
 const ONBOARDED_KEY = 'remedy_onboarded';
 const SLEEP_KEY = 'remedy_sleep';
+const NUDGE_DISMISSED_KEY = 'remedy_nudge_dismissed';
 
 const DEFAULT_PROFILE: UserProfile = {
   weightKg: 75,
@@ -150,6 +151,20 @@ export function saveSleepRecord(record: SleepRecord): void {
 }
 
 /**
+ * Check if the profile nudge card has been dismissed.
+ */
+export function hasProfileNudgeDismissed(): boolean {
+  return localStorage.getItem(NUDGE_DISMISSED_KEY) === '1';
+}
+
+/**
+ * Dismiss the profile nudge card permanently.
+ */
+export function dismissProfileNudge(): void {
+  localStorage.setItem(NUDGE_DISMISSED_KEY, '1');
+}
+
+/**
  * Clear all app data and return to first-run state.
  */
 export function resetApp(): void {
@@ -159,6 +174,7 @@ export function resetApp(): void {
   localStorage.removeItem(ONBOARDED_KEY);
   localStorage.removeItem('remedy_history');
   localStorage.removeItem(SLEEP_KEY);
+  localStorage.removeItem(NUDGE_DISMISSED_KEY);
 }
 
 /**

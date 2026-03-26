@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   calculateBACState,
   generateId,
+  formatCountdown,
   DRINK_PRESETS,
   type Drink,
   type DrinkType,
   type BACState,
 } from './lib/bac';
-import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink, loadSleepRecord, saveSleepRecord } from './lib/storage';
+import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink, loadSleepRecord, saveSleepRecord, hasProfileNudgeDismissed, dismissProfileNudge } from './lib/storage';
 import { scheduleREMClearNotification, cancelREMClearNotification } from './lib/notifications';
 import { Onboarding } from './components/Onboarding';
 import type { UserProfile } from './lib/bac';
@@ -15,32 +16,23 @@ import { STATUS_TEXT_CLASS, STATUS_BORDER_CLASS, formatDrinkCount } from './lib/
 import { BACGauge } from './components/BACGauge';
 import { BACChart } from './components/BACChart';
 import { Timeline } from './components/Timeline';
-import { DrinkLog } from './components/DrinkLog';
 import { Settings } from './components/Settings';
 import { SleepEntry } from './components/SleepEntry';
 import type { SleepRecord } from './lib/bac';
 
-type Tab = 'home' | 'timeline' | 'log' | 'settings';
+type Tab = 'tonight' | 'insights' | 'settings';
 
-// Monochrome SVG nav icons — consistent style across platforms
 const NAV_ICONS: Record<Tab, React.ReactNode> = {
-  home: (
+  tonight: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="4" fill="currentColor" />
       <circle cx="12" cy="12" r="9" />
     </svg>
   ),
-  timeline: (
+  insights: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="4 18 9 11 14 14 20 6" />
       <polyline points="16 6 20 6 20 10" />
-    </svg>
-  ),
-  log: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="4" y1="7" x2="20" y2="7" />
-      <line x1="4" y1="12" x2="20" y2="12" />
-      <line x1="4" y1="17" x2="20" y2="17" />
     </svg>
   ),
   settings: (
@@ -52,9 +44,8 @@ const NAV_ICONS: Record<Tab, React.ReactNode> = {
 };
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'home', label: 'Home' },
-  { id: 'timeline', label: 'Timeline' },
-  { id: 'log', label: 'Log' },
+  { id: 'tonight', label: 'Tonight' },
+  { id: 'insights', label: 'Insights' },
   { id: 'settings', label: 'Settings' },
 ];
 
@@ -69,14 +60,14 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(() => !hasOnboarded());
   const [drinks, setDrinks] = useState<Drink[]>(() => loadDrinks());
   const [profile, setProfile] = useState<UserProfile>(() => loadProfile());
-  const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [activeTab, setActiveTab] = useState<Tab>('tonight');
   const [whatIfMode, setWhatIfMode] = useState(false);
   const [whatIfDrinks, setWhatIfDrinks] = useState(1);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [drinkPulse, setDrinkPulse] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showSetupPrompt, setShowSetupPrompt] = useState(false);
+  const [showProfileNudge, setShowProfileNudge] = useState(() => !hasProfileNudgeDismissed());
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [tick, setTick] = useState(0); // force re-render every second
 
@@ -223,8 +214,8 @@ function App() {
         onComplete={() => {
           setOnboarded();
           setShowOnboarding(false);
-          setActiveTab('settings');
-          setShowSetupPrompt(true);
+          setActiveTab('tonight');
+          setShowProfileNudge(true);
         }}
       />
     );
@@ -244,14 +235,42 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 px-4 overflow-y-auto">
-        {activeTab === 'home' && (
+        {activeTab === 'tonight' && (
           <div className="stagger-children space-y-4">
+            {/* Profile nudge — dismissible, persists across sessions */}
+            {showProfileNudge && (
+              <div className="card p-4 border border-accent-teal/30 bg-accent-teal/5 animate-slide-up">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">
+                      For accurate estimates, set your weight and sex in Settings
+                    </p>
+                    <button
+                      onClick={() => { setActiveTab('settings'); }}
+                      className="text-xs text-accent-teal font-medium mt-1"
+                    >
+                      Go to Settings
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => {
+                      dismissProfileNudge();
+                      setShowProfileNudge(false);
+                    }}
+                    className="text-text-muted hover:text-text-secondary text-lg leading-none shrink-0 mt-0.5"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* BAC Gauge */}
             <div className={`flex justify-center py-4 transition-transform duration-300 ${drinkPulse ? 'animate-drink-pop' : ''}`}>
               <BACGauge bac={bacState.currentBAC} quality={bacState.sleepQuality} />
             </div>
 
-            {/* Tonight's Sleep — copy cleanup applied */}
+            {/* Tonight's Sleep */}
             <div className={`card p-4 text-center border transition-all duration-500 ${statusBorder}`}>
               {drinks.length === 0 && bacState.currentBAC < 0.001 ? (
                 <>
@@ -441,8 +460,48 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'timeline' && (
+        {activeTab === 'insights' && (
           <div className="stagger-children space-y-4 py-2">
+            {/* Milestone cards — elevated from timeline */}
+            {drinks.length > 0 && (
+              <div className="space-y-2">
+                {bacState.lowImpactAtTimestamp > Date.now() && (
+                  <div className="card p-4 border border-accent-green/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-accent-green/15 flex items-center justify-center shrink-0">
+                        <span className="text-accent-green text-lg">✦</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-accent-green">
+                          Sleep clear at {new Date(bacState.lowImpactAtTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </p>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          {formatCountdown(bacState.timeToLowImpactMs)} from now
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {bacState.soberAtTimestamp > Date.now() && (
+                  <div className="card p-4 border border-accent-yellow/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-accent-yellow/15 flex items-center justify-center shrink-0">
+                        <span className="text-accent-yellow text-lg">◎</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-accent-yellow">
+                          BAC reaches zero at {new Date(bacState.soberAtTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </p>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          {formatCountdown(bacState.timeToSoberMs)} from now
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* What-If — lives here with the chart for visual context */}
             <div className={`card p-4 transition-all duration-300 ${whatIfMode ? 'border border-accent-blue/20' : ''}`}>
               <div className="flex items-center justify-between mb-2">
@@ -501,21 +560,22 @@ function App() {
               profile={profile}
               hypotheticalDrinks={hypotheticalDrinksList}
               bacState={bacState}
+              onRemoveDrink={removeDrink}
             />
             {drinks.length === 0 && !whatIfMode && (
               <div className="text-center py-12">
                 <p className="text-4xl mb-4 text-text-muted">⊘</p>
                 <p className="text-text-secondary">No data yet</p>
                 <p className="text-sm text-text-muted mt-1">
-                  Log drinks on the Home tab to see your timeline
+                  Log drinks on the Tonight tab to see your insights
                 </p>
               </div>
             )}
           </div>
         )}
 
-        {activeTab === 'log' && <DrinkLog drinks={drinks} onRemove={removeDrink} />}
-        {activeTab === 'settings' && <Settings profile={profile} onUpdate={updateProfile} showSetupPrompt={showSetupPrompt} onReset={() => {
+        {activeTab === 'settings' && <Settings profile={profile} onUpdate={updateProfile} onReset={() => {
+
                   resetApp();
                   setShowOnboarding(true);
                   setDrinks([]);
@@ -523,7 +583,8 @@ function App() {
                   setSleepRecord(null);
                   setWhatIfMode(false);
                   setWhatIfDrinks(1);
-                  setActiveTab('home');
+                  setShowProfileNudge(true);
+                  setActiveTab('tonight');
                 }} onAddHistorical={(timestamp, standardDrinks) => {
                   const drink = { id: generateId(), timestamp, standardDrinks };
                   const isToday = addHistoricalDrink(drink);
@@ -541,7 +602,7 @@ function App() {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setShowSetupPrompt(false); }}
+              onClick={() => setActiveTab(tab.id)}
               className={`relative flex flex-col items-center gap-0.5 px-4 py-2 transition-all duration-200 ${
                 activeTab === tab.id ? 'text-accent-teal' : 'text-text-muted'
               }`}
