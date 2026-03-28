@@ -34,7 +34,7 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
   const [confirmReset, setConfirmReset] = useState(false);
   const [notifyEnabled, setNotifyEnabled] = useState(() => isNotificationEnabled());
   const [showAddPast, setShowAddPast] = useState(false);
-  const [pastDate, setPastDate] = useState('');
+  const [pastDate, setPastDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [pastTime, setPastTime] = useState('20:00');
   const [pastAmount, setPastAmount] = useState('1');
   const [pastConfirmation, setPastConfirmation] = useState('');
