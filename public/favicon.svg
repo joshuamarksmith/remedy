@@ -1,3 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <text y=".9em" font-size="90">🌙</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="16" fill="#0a0a0c"/>
+  <g transform="translate(32 33) scale(0.115)">
+    <path d="M-54 -78 a54 54 0 0 1 108 0 a40 40 0 0 1 -34 39 l-7 -22 a22 22 0 0 0 11 -17 a32 32 0 0 0 -64 0 a22 22 0 0 0 11 17 l-7 22 a40 40 0 0 1 -34 -39 z" fill="#ff6a3d"/>
+    <path d="M0 -34 c-58 0 -104 44 -104 108 c0 62 46 104 104 104 c58 0 104 -42 104 -104 c0 -64 -46 -108 -104 -108 z" fill="#ff6a3d"/>
+  </g>
 </svg>

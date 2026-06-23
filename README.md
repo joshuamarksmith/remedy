@@ -1,53 +1,72 @@
-# **rem**edy
+# Pood
 
-Track your drinks proactively. Sleep better.
+**An 8-week kettlebell program in your pocket — beginner to the Simple standard.**
 
-**remedy** is a mobile-first PWA that estimates your BAC in real time and projects how tonight's drinks will affect your REM sleep. Most tracking is retroactive — remedy works in the moment, while you're still drinking, so you can make smarter decisions before bed.
+Pood is a sleek, offline-first PWA that takes you from your first clean swing to a real,
+durable kettlebell base over eight progressive weeks. Guided sessions, built-in interval and
+EMOM timers, a full movement library, and progress tracking — all on-device, all yours.
 
-<p align="center">
-  <img src="assets/screenshot-onboarding-1.png" width="200" alt="Onboarding intro" />
-  <img src="assets/screenshot-home.png" width="200" alt="Home screen" />
-  <img src="assets/screenshot-with-drinks.png" width="200" alt="With drinks logged" />
-  <img src="assets/screenshot-timeline.png" width="200" alt="Timeline view" />
-</p>
-
-## Disclaimer
-
-**Remedy is for informational and educational purposes only.** BAC calculations are approximate estimates based on the Widmark formula and do not account for all individual factors (food intake, medications, hydration, liver health, tolerance, or genetic variation).
-
-**This app should never be used to determine whether it is safe to drive, operate machinery, or make safety-critical decisions.** Always err on the side of caution. When in doubt, don't drive.
-
-If you are concerned about your alcohol consumption, please consult a healthcare professional or contact [SAMHSA's National Helpline](https://www.samhsa.gov/find-help/national-helpline) at 1-800-662-4357 (free, confidential, 24/7).
+> A *pood* is the traditional Russian unit kettlebells are measured in (≈16 kg). One pood is
+> the classic starting bell.
 
 ## What it does
 
-- **Log drinks** and see real-time BAC, REM impact, and a countdown to REM-safe sleep
-- **"What if I have one more?"** — toggle a hypothetical drink to preview the impact
-- **BAC curve chart** with color-coded REM zones and a timeline of milestones
+- **8-week progressive program** — 24 sessions across four phases: Foundations → Build →
+  Strength & Power → Peak & Test. Each phase layers on skill and load, finishing with the
+  StrongFirst "Simple" standard (100 swings + 10 get-ups) and the classic snatch test.
+- **Guided session player** — step through every warm-up, working set, and finisher with a
+  big, glanceable display. Automatic rest countdowns, work timers, and EMOM pacing with
+  audio + haptic cues.
+- **Scales to your bells** — tell Pood which kettlebells you own and your working weight, and
+  every prescription resolves to a concrete load.
+- **Movement library** — every lift with coaching cues, the common mistakes to avoid, and the
+  progression/regression path (deadlift → swing → snatch, get-up to elbow → full Turkish
+  get-up, and more).
+- **Progress tracking** — streaks, lifetime swings, volume lifted, a per-week program map, and
+  a history of every session with RPE and notes.
 
-## The science
+## Your data is yours
 
-BAC is estimated using the **Widmark formula**, the standard in forensic toxicology. Alcohol elimination is modeled as zero-order (constant rate of ~0.015 g/dL/hr).
+Everything lives on your device — no account, no servers, works fully offline.
 
-REM impact is based on the **Gardiner et al. 2024** meta-analysis of 27 studies: each g/kg of alcohol reduces REM sleep by approximately 40 minutes. The REM-safe threshold adds a 1-hour buffer after BAC reaches zero for sleep architecture to normalize.
+- **Automatic local backup** — every change is written to two on-device keys, so a single
+  glitch never wipes your history.
+- **Export / import to a file** — download a complete JSON backup any time and restore it on
+  any device. (Settings → Your data.)
 
-Sources: Ebrahim et al. 2013, Colrain et al. 2014, Gardiner et al. 2024, Ohayon et al. 2004.
+## The method
 
-## Run locally
+Pood is built on established hardstyle kettlebell methodology (Tsatsouline / StrongFirst,
+Dan John) and current strength research on hip-hinge mechanics and ballistic power:
 
-```
+- The **hip hinge** is patterned with the deadlift before any ballistic work.
+- **Swings** build explosive posterior-chain power and conditioning; volume is delivered in
+  low-fatigue EMOM blocks to keep every rep powerful.
+- The **Turkish get-up** develops total-body stability and overhead control.
+- The program peaks into the **snatch**, complexes (Dan John's Armor Building Complex), and a
+  measurable test week.
+
+*Pood is an educational training tool, not medical advice. Train within your ability, scale
+loads sensibly, and stop if something hurts.*
+
+## Stack
+
+- **React 19** + **TypeScript** (strict)
+- **Vite 8** + **Tailwind CSS v4**
+- **PWA** — web app manifest, installable, offline service worker
+- Hand-rolled SVG charts and Web Audio timer cues — no runtime UI dependencies
+- Icons generated at build time with a dependency-free PNG rasterizer
+
+## Develop
+
+```bash
 npm install
-npm run dev
+npm run dev        # local dev server
+npm run build      # type-check + production build
+npm test           # unit tests (vitest)
+npm run lint       # eslint
+npm run icons      # regenerate app icons into public/icons
 ```
 
-## Deploy
-
-Configured for Cloudflare Pages:
-
-```
-npm run deploy
-```
-
-## Tech
-
-React 19, TypeScript, Vite 8, Tailwind CSS v4. No chart library — the BAC curve is drawn on canvas. All data stays in localStorage.
+The production build in `dist/` is a static PWA — deploy it to any static host (Cloudflare
+Pages config is included via `wrangler.toml`).

@@ -1,184 +1,111 @@
 @import "tailwindcss";
 
+/* ---- Pood design tokens ---- */
 @theme {
-  --color-bg-primary: #0f172a;
-  --color-bg-card: rgba(255, 255, 255, 0.04);
-  --color-bg-card-hover: rgba(255, 255, 255, 0.07);
-  --color-border-glass: rgba(255, 255, 255, 0.08);
-  --color-accent-green: #34d399;
-  --color-accent-yellow: #fbbf24;
-  --color-accent-red: #f87171;
-  --color-accent-blue: #60a5fa;
-  --color-accent-teal: #2dd4bf;
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
+  --color-ink: #0a0a0c;          /* app background */
+  --color-ink-2: #101014;        /* raised background */
+  --color-surface: rgba(255, 255, 255, 0.045);
+  --color-surface-2: rgba(255, 255, 255, 0.07);
+  --color-hairline: rgba(255, 255, 255, 0.09);
+
+  --color-ember: #ff6a3d;        /* primary accent — molten iron */
+  --color-ember-soft: #ff855e;
+  --color-steel: #7c8aa0;        /* cool neutral accent */
+  --color-mint: #34d399;         /* success / done */
+  --color-gold: #f5b945;         /* highlight / PR */
+
+  --color-fg: #f4f4f6;
+  --color-fg-dim: #9aa0ac;
+  --color-fg-faint: #61656f;
+
+  --font-sans: ui-rounded, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
 }
 
 * {
   -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
 }
 
-html, body {
-  overscroll-behavior: none;
+html, body, #root {
   margin: 0;
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  min-height: 100dvh;
+  font-family: var(--font-sans);
+  background: var(--color-ink);
+  color: var(--color-fg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* ---- Keyframes ---- */
+/* Respect the notch / home indicator. */
+.safe-top { padding-top: max(env(safe-area-inset-top), 0.5rem); }
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
 
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes count-up {
-  from { transform: scale(0.85); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-@keyframes pop-in {
-  0% { transform: scale(0.7); opacity: 0; }
-  70% { transform: scale(1.08); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes bounce-in {
-  0% { transform: scale(0.3); opacity: 0; }
-  50% { transform: scale(1.12); }
-  70% { transform: scale(0.95); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes nav-bounce {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.2); }
-  70% { transform: scale(0.92); }
-  100% { transform: scale(1); }
-}
-
-@keyframes dot-in {
-  0% { transform: scaleX(0); opacity: 0; }
-  60% { transform: scaleX(1.5); }
-  100% { transform: scaleX(1); opacity: 1; }
-}
-
-@keyframes drink-pop {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.15); }
-  60% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { filter: drop-shadow(0 0 4px currentColor); }
-  50% { filter: drop-shadow(0 0 12px currentColor); }
-}
-
-@keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(40px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes slide-in-left {
-  from { opacity: 0; transform: translateX(-40px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* ---- Animation classes ---- */
-
-.animate-fade-in {
-  animation: fade-in 0.25s ease-out;
-}
-
-.animate-count-up {
-  animation: count-up 0.2s ease-out;
-}
-
-.nav-icon-bounce {
-  animation: nav-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.nav-dot-in {
-  animation: dot-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.animate-pop-in {
-  animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.animate-bounce-in {
-  animation: bounce-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.animate-slide-up {
-  animation: slide-up 0.35s ease-out both;
-}
-
-.animate-drink-pop {
-  animation: drink-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.animate-glow {
-  animation: glow-pulse 2s ease-in-out infinite;
-}
-
-/* Staggered children — add to parent for cascading entrance */
-.stagger-children > * {
-  opacity: 0;
-  animation: fade-in-up 0.35s ease-out forwards;
-}
-.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
-.stagger-children > *:nth-child(7) { animation-delay: 360ms; }
-.stagger-children > *:nth-child(8) { animation-delay: 420ms; }
-
-/* ---- Component styles ---- */
-
-/* Card style — simple bg + border, no expensive blur */
+/* ---- Reusable surfaces ---- */
 .card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-glass);
-  border-radius: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-hairline);
+  border-radius: 1rem;
+}
+.card-2 {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-hairline);
+  border-radius: 1rem;
 }
 
-/* BAC gauge ring */
-.gauge-ring {
-  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+/* Tabular figures for timers / numbers. */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* Subtle ember glow used on primary actions and the active ring. */
+.glow-ember { box-shadow: 0 0 0 1px rgba(255,106,61,0.35), 0 8px 30px -8px rgba(255,106,61,0.55); }
+
+/* ---- Animations ---- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes pop {
+  0% { transform: scale(0.9); opacity: 0; }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes ring-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 
-/* Smooth press feedback */
-/* Onboarding slide transitions */
-.onboarding-slide-right {
-  animation: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.onboarding-slide-left {
-  animation: slide-in-left 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
+.anim-fade-up { animation: fade-up 0.4s ease both; }
+.anim-fade-in { animation: fade-in 0.3s ease both; }
+.anim-sheet { animation: sheet-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-pop { animation: pop 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-pulse { animation: ring-pulse 1s ease-in-out infinite; }
 
-.press-bounce {
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.press-bounce:active {
-  transform: scale(0.95);
+/* Stagger helper for lists. */
+.stagger > * { animation: fade-up 0.4s ease both; }
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger > *:nth-child(3) { animation-delay: 0.10s; }
+.stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.stagger > *:nth-child(7) { animation-delay: 0.26s; }
+.stagger > *:nth-child(8) { animation-delay: 0.30s; }
+
+/* Hide scrollbars but keep scrolling. */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }

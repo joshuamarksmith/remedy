@@ -1,350 +1,210 @@
-import { memo, useState } from 'react';
-import type { UserProfile } from '../lib/bac';
-import {
-  isNotificationEnabled,
-  setNotificationEnabled,
-  requestPermission,
-  cancelREMClearNotification,
-} from '../lib/notifications';
+import { useRef, useState } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
+import type { AppData, Profile, Unit } from '../types';
+import { COMMON_BELLS_KG, formatWeight, kgToLb } from '../lib/units';
+import { downloadBackup, parseImport } from '../lib/storage';
+import { computeStats } from '../lib/progress';
+import { Download, Upload, Check, Kettlebell, Info } from './icons';
 
-const LBS_PER_KG = 2.20462;
-
-function lbsToKg(lbs: number): number {
-  return lbs / LBS_PER_KG;
-}
-
-function kgToLbs(kg: number): number {
-  return Math.round(kg * LBS_PER_KG);
-}
-
-interface SettingsProps {
-  profile: UserProfile;
-  onUpdate: (profile: UserProfile) => void;
+export function Settings({
+  data,
+  onPatchProfile,
+  onImportData,
+  onReset,
+}: {
+  data: AppData;
+  onPatchProfile: (patch: Partial<Profile>) => void;
+  onImportData: (data: AppData) => void;
   onReset: () => void;
-  onAddHistorical: (timestamp: number, standardDrinks: number) => void;
-  onNotificationsChanged: (enabled: boolean) => void;
-  showSetupPrompt?: boolean;
-}
-
-export const Settings = memo(function Settings({ profile, onUpdate, onReset, onAddHistorical, onNotificationsChanged, showSetupPrompt }: SettingsProps) {
-  const [weightInput, setWeightInput] = useState(() => String(kgToLbs(profile.weightKg)));
-  const [editingWeight, setEditingWeight] = useState(false);
-  const displayWeight = editingWeight ? weightInput : String(kgToLbs(profile.weightKg));
+}) {
+  const { profile } = data;
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [notifyEnabled, setNotifyEnabled] = useState(() => isNotificationEnabled());
-  const [showAddPast, setShowAddPast] = useState(false);
-  const [pastDate, setPastDate] = useState('');
-  const [pastTime, setPastTime] = useState('20:00');
-  const [pastAmount, setPastAmount] = useState('1');
-  const [pastConfirmation, setPastConfirmation] = useState('');
-  const [notifyDenied, setNotifyDenied] = useState(false);
+  const stats = computeStats(data);
+
+  function flash(kind: 'ok' | 'err', text: string) {
+    setMsg({ kind, text });
+    setTimeout(() => setMsg(null), 3500);
+  }
+
+  function handleExport() {
+    downloadBackup(data);
+    flash('ok', 'Backup downloaded. Keep it somewhere safe.');
+  }
+
+  function handleFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const res = parseImport(String(reader.result));
+      if (res.ok && res.data) {
+        onImportData(res.data);
+        flash('ok', `Restored ${res.data.logs.length} sessions from backup.`);
+      } else {
+        flash('err', res.error ?? 'Import failed.');
+      }
+    };
+    reader.onerror = () => flash('err', 'Could not read that file.');
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  function toggleBell(kg: number) {
+    const bells = profile.bells.includes(kg)
+      ? profile.bells.filter((b) => b !== kg)
+      : [...profile.bells, kg].sort((a, b) => a - b);
+    if (bells.length === 0) return;
+    const working = bells.includes(profile.workingBell) ? profile.workingBell : bells[Math.floor(bells.length / 2)];
+    onPatchProfile({ bells, workingBell: working });
+  }
 
   return (
-    <div className="stagger-children space-y-4 py-2">
-      {showSetupPrompt && (
-        <div className="card p-4 border border-accent-teal/30 bg-accent-teal/5">
-          <p className="text-sm font-medium text-text-primary">Set up your profile</p>
-          <p className="text-xs text-text-secondary mt-1">
-            Confirm your weight, sex, and usual bedtime below for accurate BAC estimates.
-          </p>
-          <p className="text-xs text-text-muted mt-2">
-            All data stays on your device. Nothing is ever sent to a server.
-          </p>
+    <div className="px-5 pt-2 pb-28 max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-5">Settings</h1>
+
+      {msg && (
+        <div className={`mb-4 p-3 rounded-xl text-sm anim-fade-up ${msg.kind === 'ok' ? 'bg-mint/15 text-mint' : 'bg-ember/15 text-ember-soft'}`}>
+          {msg.text}
         </div>
       )}
-      <h2 className="text-sm font-medium text-text-secondary mb-3">Your Profile</h2>
 
-      {/* Weight */}
-      <div className="card p-4">
-        <label className="text-sm text-text-secondary block mb-2">Body Weight</label>
-        <div className="flex items-center gap-3">
-          <input
-            type="number"
-            inputMode="numeric"
-            value={displayWeight}
-            onFocus={() => {
-              setEditingWeight(true);
-              setWeightInput(String(kgToLbs(profile.weightKg)));
-            }}
-            onChange={(e) => {
-              setWeightInput(e.target.value);
-              const lbs = parseFloat(e.target.value);
-              if (lbs > 0) {
-                onUpdate({ ...profile, weightKg: lbsToKg(lbs) });
-              }
-            }}
-            onBlur={() => {
-              setEditingWeight(false);
-              const lbs = parseFloat(weightInput);
-              if (lbs > 0) {
-                onUpdate({ ...profile, weightKg: lbsToKg(lbs) });
-              }
-            }}
-            className="flex-1 bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50 text-lg"
-          />
-          <span className="text-text-muted text-sm">lbs</span>
+      {/* Backup — front and center */}
+      <Section title="Your data" subtitle="Everything lives on this device. Back it up so you never lose progress.">
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={handleExport} className="card p-4 flex flex-col items-center gap-1.5 active:scale-95 transition">
+            <Download size={22} className="text-ember" />
+            <span className="font-medium text-sm">Export backup</span>
+            <span className="text-[11px] text-fg-faint">save to a file</span>
+          </button>
+          <button onClick={() => fileRef.current?.click()} className="card p-4 flex flex-col items-center gap-1.5 active:scale-95 transition">
+            <Upload size={22} className="text-steel" />
+            <span className="font-medium text-sm">Import backup</span>
+            <span className="text-[11px] text-fg-faint">restore from a file</span>
+          </button>
         </div>
-        <p className="text-xs text-text-muted mt-1">
-          ≈ {Math.round(lbsToKg(parseFloat(displayWeight) || 0))} kg
+        <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleFile} className="hidden" />
+        <p className="text-xs text-fg-faint mt-3 flex items-start gap-1.5">
+          <Info size={14} className="mt-0.5 shrink-0" />
+          Pood also keeps a second on-device copy automatically, so a glitch won't wipe your history.
         </p>
-      </div>
+      </Section>
 
-      {/* Sex */}
-      <div className="card p-4">
-        <label className="text-sm text-text-secondary block mb-2">Biological Sex</label>
+      {/* Units */}
+      <Section title="Units">
         <div className="flex gap-2">
-          {(['male', 'female'] as const).map((sex) => (
+          {(['kg', 'lb'] as Unit[]).map((u) => (
             <button
-              key={sex}
-              onClick={() => onUpdate({ ...profile, sex })}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                profile.sex === sex
-                  ? 'bg-accent-teal/20 text-accent-teal border border-accent-teal/40'
-                  : 'bg-white/5 text-text-muted border border-transparent'
-              }`}
+              key={u}
+              onClick={() => onPatchProfile({ unit: u })}
+              className={`flex-1 py-2.5 rounded-xl font-medium transition ${profile.unit === u ? 'bg-ember text-ink' : 'card text-fg-dim'}`}
             >
-              {sex === 'male' ? 'Male' : 'Female'}
+              {u}
             </button>
           ))}
         </div>
-        <p className="text-xs text-text-muted mt-2">
-          Affects metabolism rate (Widmark factor: {profile.sex === 'male' ? '0.68' : '0.55'})
-        </p>
-      </div>
+      </Section>
 
-      {/* Bedtime */}
-      <div className="card p-4">
-        <label className="text-sm text-text-secondary block mb-2">Usual Bedtime</label>
-        <input
-          type="time"
-          value={profile.bedtime}
-          onChange={(e) => onUpdate({ ...profile, bedtime: e.target.value })}
-          className="w-full bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50 text-lg"
-        />
-      </div>
-
-      {/* REM-Clear Notification */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-text-secondary">REM-clear notification</p>
-            <p className="text-xs text-text-muted mt-0.5">Get notified when your sleep is no longer impacted</p>
-          </div>
-          <button
-            onClick={async () => {
-              if (isNotificationEnabled()) {
-                setNotificationEnabled(false);
-                cancelREMClearNotification();
-                setNotifyEnabled(false);
-                onNotificationsChanged(false);
-              } else {
-                setNotifyDenied(false);
-                const granted = await requestPermission();
-                if (granted) {
-                  setNotificationEnabled(true);
-                  setNotifyEnabled(true);
-                  onNotificationsChanged(true);
-                } else {
-                  setNotifyDenied(true);
-                }
-              }
-            }}
-            className={`w-12 h-7 shrink-0 rounded-full transition-colors relative overflow-hidden ${
-              notifyEnabled ? 'bg-accent-teal' : 'bg-white/10'
-            }`}
-          >
-            <div
-              className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                notifyEnabled ? 'translate-x-[1.375rem]' : 'translate-x-1'
-              }`}
-            />
-          </button>
+      {/* Bells */}
+      <Section title="Your kettlebells" subtitle="Tap to add or remove. The plan scales to what you own.">
+        <div className="grid grid-cols-4 gap-2">
+          {COMMON_BELLS_KG.map((kg) => {
+            const on = profile.bells.includes(kg);
+            return (
+              <button
+                key={kg}
+                onClick={() => toggleBell(kg)}
+                className={`aspect-square rounded-xl flex flex-col items-center justify-center transition active:scale-95 ${
+                  on ? 'bg-ember/20 border border-ember/50' : 'card text-fg-dim'
+                }`}
+              >
+                <span className="font-bold tnum">{profile.unit === 'kg' ? kg : Math.round(kgToLb(kg))}</span>
+                {on && <Check size={13} className="text-ember" />}
+              </button>
+            );
+          })}
         </div>
-        {notifyDenied && (
-          <p className="text-xs text-accent-red mt-2 animate-slide-up">
-            Notifications are blocked. Check your browser or device settings to allow them.
-          </p>
-        )}
-      </div>
+      </Section>
 
-      {/* Experimental Features */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-text-secondary">Sleep tracking</p>
-            <p className="text-xs text-text-muted mt-0.5">
-              Log actual REM &amp; deep sleep to compare against predictions
-            </p>
-          </div>
-          <button
-            onClick={() => onUpdate({ ...profile, experimentalSleep: !profile.experimentalSleep })}
-            className={`w-12 h-7 shrink-0 rounded-full transition-colors relative overflow-hidden ${
-              profile.experimentalSleep ? 'bg-accent-teal' : 'bg-white/10'
-            }`}
-          >
-            <div
-              className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                profile.experimentalSleep ? 'translate-x-[1.375rem]' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-        <p className="text-[10px] text-accent-blue/60 mt-2 uppercase tracking-wider font-medium">Experimental</p>
-      </div>
-
-      {/* Science Info */}
-      <div className="card p-4">
-        <h3 className="text-sm font-medium text-text-secondary mb-2">How it works</h3>
-        <div className="space-y-2 text-xs text-text-muted">
-          <p>
-            <strong className="text-text-secondary">BAC</strong> is estimated using the
-            Widmark formula, the gold standard in forensic toxicology.
-          </p>
-          <p>
-            <strong className="text-text-secondary">REM impact</strong> is based on
-            Gardiner et al. 2024 meta-analysis of 27 studies: each g/kg of alcohol
-            reduces REM by ~40 minutes.
-          </p>
-          <p>
-            <strong className="text-text-secondary">Sleep clear</strong> = when remaining alcohol
-            would reduce REM by less than 10 minutes, a negligible impact.
-          </p>
-          <p className="pt-1 border-t border-border-glass">
-            Sources: Ebrahim et al. 2013, Colrain et al. 2014, Gardiner et al. 2024
-          </p>
-        </div>
-      </div>
-
-      {/* Add Past Drinks */}
-      <div className="card p-4">
-        <button
-          onClick={() => setShowAddPast(!showAddPast)}
-          className="w-full flex items-center justify-between"
-        >
-          <h3 className="text-sm font-medium text-text-secondary">Add past drinks</h3>
-          <span className={`text-text-muted text-xs transition-transform duration-200 ${showAddPast ? 'rotate-180' : ''}`}>
-            ▾
-          </span>
-        </button>
-        {showAddPast && (
-          <div className="mt-3 space-y-3 animate-slide-up">
-            <p className="text-xs text-text-muted">
-              Backfill drinks you forgot to log. Past dates go to history.
-            </p>
-            <div>
-              <label className="text-xs text-text-muted block mb-1">Date</label>
-              <input
-                type="date"
-                value={pastDate}
-                max={new Date().toISOString().split('T')[0]}
-                onChange={(e) => setPastDate(e.target.value)}
-                className="w-full bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-text-muted block mb-1">Time</label>
-              <input
-                type="time"
-                value={pastTime}
-                onChange={(e) => setPastTime(e.target.value)}
-                className="w-full bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-text-muted block mb-1">Standard drinks</label>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.5"
-                min="0.5"
-                max="20"
-                value={pastAmount}
-                onChange={(e) => setPastAmount(e.target.value)}
-                className="w-full bg-transparent border border-border-glass rounded-lg px-3 py-2 text-text-primary outline-none focus:border-accent-teal/50"
-              />
-            </div>
+      {/* Working bell */}
+      <Section title="Working bell" subtitle="The weight most sets are built around.">
+        <div className="flex flex-wrap gap-2">
+          {profile.bells.map((kg) => (
             <button
-              onClick={() => {
-                if (!pastDate) return;
-                const val = parseFloat(pastAmount);
-                if (!val || val <= 0) return;
-                const [y, mo, d] = pastDate.split('-').map(Number);
-                const [h, m] = pastTime.split(':').map(Number);
-                const ts = new Date(y, mo - 1, d, h, m).getTime();
-                onAddHistorical(ts, val);
-                setPastConfirmation(`Added ${val} drink${val !== 1 ? 's' : ''} on ${pastDate}`);
-                setPastAmount('1');
-                setTimeout(() => setPastConfirmation(''), 3000);
-              }}
-              disabled={!pastDate || !pastAmount || parseFloat(pastAmount) <= 0}
-              className="w-full py-2 rounded-lg text-sm font-medium bg-accent-teal/15 text-accent-teal border border-accent-teal/20 disabled:opacity-30 transition-colors"
+              key={kg}
+              onClick={() => onPatchProfile({ workingBell: kg })}
+              className={`px-4 py-2.5 rounded-xl font-semibold transition active:scale-95 ${
+                profile.workingBell === kg ? 'bg-ember text-ink' : 'card text-fg-dim'
+              }`}
             >
-              Add to history
+              {formatWeight(kg, profile.unit)}
             </button>
-            {pastConfirmation && (
-              <p className="text-xs text-accent-green animate-pop-in">{pastConfirmation}</p>
-            )}
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      </Section>
 
-      {/* Reset App */}
-      <div className="card p-4">
-        <h3 className="text-sm font-medium text-text-secondary mb-2">Reset</h3>
+      {/* Cues */}
+      <Section title="Timer cues">
+        <Toggle label="Sound" value={profile.soundOn} onChange={(v) => onPatchProfile({ soundOn: v })} />
+        <Toggle label="Vibration" value={profile.vibrateOn} onChange={(v) => onPatchProfile({ vibrateOn: v })} />
+      </Section>
+
+      {/* Danger zone */}
+      <Section title="Reset">
         {!confirmReset ? (
-          <button
-            onClick={() => setConfirmReset(true)}
-            className="w-full py-2 rounded-lg text-sm font-medium bg-white/5 text-red-400 border border-red-400/20 hover:bg-red-400/10 transition-colors"
-          >
-            Reset app to first-run state
+          <button onClick={() => setConfirmReset(true)} className="w-full py-3 rounded-xl card text-ember-soft font-medium active:scale-[0.99] transition">
+            Erase all data & start over
           </button>
         ) : (
           <div className="space-y-2">
-            <p className="text-xs text-red-400">
-              This clears all data (drinks, profile, history) and returns to onboarding. Are you sure?
-            </p>
+            <p className="text-sm text-fg-dim">This deletes your {stats.sessionsDone} logged sessions and settings. Export a backup first if you want to keep them.</p>
             <div className="flex gap-2">
-              <button
-                onClick={() => setConfirmReset(false)}
-                className="flex-1 py-2 rounded-lg text-sm font-medium bg-white/5 text-text-muted border border-transparent"
-              >
+              <button onClick={() => setConfirmReset(false)} className="flex-1 py-3 rounded-xl card font-medium">
                 Cancel
               </button>
               <button
-                onClick={onReset}
-                className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-500/20 text-red-400 border border-red-400/40"
+                onClick={() => {
+                  onReset();
+                  setConfirmReset(false);
+                  flash('ok', 'Reset complete.');
+                }}
+                className="flex-1 py-3 rounded-xl bg-ember text-ink font-semibold"
               >
-                Yes, reset everything
+                Erase
               </button>
             </div>
           </div>
         )}
-      </div>
-      {/* Disclaimer */}
-      <div className="card p-4">
-        <div className="space-y-2 text-xs text-text-muted leading-relaxed">
-          <p>
-            <span className="font-medium text-text-secondary">Disclaimer:</span>{' '}
-            Remedy is for informational and educational purposes only. It is not a
-            medical device and does not provide medical advice, diagnosis, or treatment.
-          </p>
-          <p>
-            BAC estimates are approximate and vary based on many factors not captured
-            here (food intake, medications, hydration, liver health, tolerance,
-            genetic variation). Actual impairment may differ significantly from
-            displayed estimates.
-          </p>
-          <p className="font-medium text-red-400/80">
-            Never use this app to determine whether it is safe to drive, operate
-            machinery, or make any safety-critical decision.
-          </p>
-          <p>
-            If you are concerned about your alcohol consumption, consult a healthcare
-            professional or contact SAMHSA's National Helpline at 1-800-662-4357
-            (free, confidential, 24/7).
-          </p>
-        </div>
+      </Section>
+
+      <div className="mt-8 text-center text-fg-faint">
+        <Kettlebell size={28} className="mx-auto mb-1.5 opacity-60" />
+        <div className="text-sm font-medium text-fg-dim">Pood</div>
+        <div className="text-xs">8-week kettlebell training · works offline</div>
       </div>
     </div>
   );
-});
+}
+
+function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+  return (
+    <div className="mt-6">
+      <h2 className="font-semibold">{title}</h2>
+      {subtitle && <p className="text-sm text-fg-dim mt-0.5 mb-3">{subtitle}</p>}
+      {!subtitle && <div className="mb-3" />}
+      {children}
+    </div>
+  );
+}
+
+function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button onClick={() => onChange(!value)} className="w-full flex items-center justify-between py-2.5">
+      <span className="text-fg">{label}</span>
+      <span className={`relative h-7 w-12 rounded-full transition ${value ? 'bg-ember' : 'bg-white/15'}`}>
+        <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition-all ${value ? 'left-[22px]' : 'left-0.5'}`} />
+      </span>
+    </button>
+  );
+}

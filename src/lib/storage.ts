@@ -1,206 +1,134 @@
-import type { Drink, UserProfile, SleepRecord } from './bac';
+import type { AppData, Profile, SessionLog } from '../types';
+import { defaultBells } from './units';
 
-const DRINKS_KEY = 'remedy_drinks';
-const PROFILE_KEY = 'remedy_profile';
-const SESSION_KEY = 'remedy_session_date';
-const ONBOARDED_KEY = 'remedy_onboarded';
-const SLEEP_KEY = 'remedy_sleep';
+const KEY = 'pood_data_v1';
+const BACKUP_KEY = 'pood_data_backup'; // secondary copy, written on every save
+export const DATA_VERSION = 1;
 
-const DEFAULT_PROFILE: UserProfile = {
-  weightKg: 75,
-  sex: 'male',
-  bedtime: '23:00',
+export const DEFAULT_PROFILE: Profile = {
+  unit: 'kg',
+  bells: defaultBells('new').bells,
+  workingBell: defaultBells('new').working,
+  experience: 'new',
+  daysPerWeek: 3,
+  soundOn: true,
+  vibrateOn: true,
 };
 
-/**
- * Get the session date key. Uses local time with a 5 AM rollover —
- * a drinking session that spans midnight still counts as one "day".
- * This prevents drinks from vanishing when the clock strikes 12.
- */
-function getSessionDateKey(): string {
-  const now = new Date();
-  // Subtract 5 hours so the "day" rolls over at 5 AM local, not midnight
-  const shifted = new Date(now.getTime() - 5 * 60 * 60 * 1000);
-  return shifted.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+function emptyData(): AppData {
+  return {
+    version: DATA_VERSION,
+    profile: { ...DEFAULT_PROFILE },
+    logs: [],
+    sessionNotes: {},
+    onboarded: false,
+  };
 }
 
-/**
- * Load drinks from localStorage. Only returns today's drinks.
- */
-export function loadDrinks(): Drink[] {
-  try {
-    const sessionDate = localStorage.getItem(SESSION_KEY);
-    const today = getSessionDateKey();
+function migrate(raw: unknown): AppData {
+  const base = emptyData();
+  if (!raw || typeof raw !== 'object') return base;
+  const data = raw as Partial<AppData>;
+  return {
+    version: DATA_VERSION,
+    profile: { ...base.profile, ...(data.profile ?? {}) },
+    logs: Array.isArray(data.logs) ? (data.logs as SessionLog[]) : [],
+    sessionNotes: data.sessionNotes ?? {},
+    onboarded: Boolean(data.onboarded),
+  };
+}
 
-    // If it's a new day, archive old drinks and start fresh
-    if (sessionDate !== today) {
-      archiveDrinks();
-      localStorage.setItem(SESSION_KEY, today);
-      return [];
+// Load app data. Falls back to the backup copy if the primary is corrupt.
+export function loadData(): AppData {
+  for (const key of [KEY, BACKUP_KEY]) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      return migrate(JSON.parse(raw));
+    } catch {
+      // try the next source
     }
+  }
+  return emptyData();
+}
 
-    const raw = localStorage.getItem(DRINKS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as Drink[];
+// Persist app data to two keys so a half-written primary never loses everything.
+export function saveData(data: AppData): void {
+  const json = JSON.stringify({ ...data, version: DATA_VERSION });
+  try {
+    localStorage.setItem(KEY, json);
+    localStorage.setItem(BACKUP_KEY, json);
   } catch {
-    return [];
+    // Storage full or blocked — surfaced to the user via the Settings backup nudge.
   }
 }
 
-/**
- * Save drinks to localStorage.
- */
-export function saveDrinks(drinks: Drink[]): void {
-  localStorage.setItem(DRINKS_KEY, JSON.stringify(drinks));
-  localStorage.setItem(SESSION_KEY, getSessionDateKey());
+export function resetData(): AppData {
+  const fresh = emptyData();
+  saveData(fresh);
+  return fresh;
 }
 
-/**
- * Archive current drinks into history before clearing.
- */
-function archiveDrinks(): void {
+// ---- File export / import (the durable backup the user asked for) ----
+
+export interface ExportFile {
+  app: 'pood';
+  version: number;
+  exportedAt: string;
+  data: AppData;
+}
+
+export function buildExport(data: AppData): ExportFile {
+  return { app: 'pood', version: DATA_VERSION, exportedAt: new Date().toISOString(), data };
+}
+
+// Trigger a download of the current data as a JSON file.
+export function downloadBackup(data: AppData): void {
+  const payload = buildExport(data);
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `pood-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export interface ImportResult {
+  ok: boolean;
+  data?: AppData;
+  error?: string;
+}
+
+// Parse and validate an imported backup file's text.
+export function parseImport(text: string): ImportResult {
   try {
-    const raw = localStorage.getItem(DRINKS_KEY);
-    if (!raw) return;
-
-    const drinks = JSON.parse(raw) as Drink[];
-    if (drinks.length === 0) return;
-
-    const historyKey = 'remedy_history';
-    const history = JSON.parse(localStorage.getItem(historyKey) || '[]') as {
-      date: string;
-      drinks: Drink[];
-    }[];
-
-    const sessionDate = localStorage.getItem(SESSION_KEY) || getSessionDateKey();
-    history.push({ date: sessionDate, drinks });
-
-    // Keep last 90 days
-    if (history.length > 90) {
-      history.splice(0, history.length - 90);
+    const parsed = JSON.parse(text) as Partial<ExportFile> | Partial<AppData>;
+    // Accept either a wrapped export file or a bare AppData object.
+    const candidate =
+      parsed && typeof parsed === 'object' && 'data' in parsed && parsed.data
+        ? (parsed as ExportFile).data
+        : (parsed as AppData);
+    if (!candidate || typeof candidate !== 'object') {
+      return { ok: false, error: 'File is not a valid Pood backup.' };
     }
-
-    localStorage.setItem(historyKey, JSON.stringify(history));
-    localStorage.removeItem(DRINKS_KEY);
+    const data = migrate(candidate);
+    if (!Array.isArray(data.logs)) {
+      return { ok: false, error: 'Backup is missing workout history.' };
+    }
+    return { ok: true, data };
   } catch {
-    // Silently fail on archive errors
+    return { ok: false, error: 'Could not read the file. Is it a Pood backup?' };
   }
 }
 
-/**
- * Load user profile from localStorage.
- */
-export function loadProfile(): UserProfile {
-  try {
-    const raw = localStorage.getItem(PROFILE_KEY);
-    if (!raw) return DEFAULT_PROFILE;
-    return { ...DEFAULT_PROFILE, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_PROFILE;
+export function uuid(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
   }
-}
-
-/**
- * Save user profile to localStorage.
- */
-export function saveProfile(profile: UserProfile): void {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-}
-
-/**
- * Check if user has completed onboarding.
- */
-export function hasOnboarded(): boolean {
-  return localStorage.getItem(ONBOARDED_KEY) === '1';
-}
-
-/**
- * Mark onboarding as complete.
- */
-export function setOnboarded(): void {
-  localStorage.setItem(ONBOARDED_KEY, '1');
-}
-
-/**
- * Load the single stored sleep record (if it matches the requested date).
- * Only one record is ever kept — this is a spot-check, not a history.
- */
-export function loadSleepRecord(date: string): SleepRecord | null {
-  try {
-    const raw = localStorage.getItem(SLEEP_KEY);
-    if (!raw) return null;
-    const record = JSON.parse(raw) as SleepRecord;
-    return record.date === date ? record : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Save a sleep record. Overwrites any previous record — we only
- * keep one at a time. This is intentionally ephemeral: no history,
- * no trends, just "how'd last night go?"
- */
-export function saveSleepRecord(record: SleepRecord): void {
-  try {
-    localStorage.setItem(SLEEP_KEY, JSON.stringify(record));
-  } catch {
-    // silently fail
-  }
-}
-
-/**
- * Clear all app data and return to first-run state.
- */
-export function resetApp(): void {
-  localStorage.removeItem(DRINKS_KEY);
-  localStorage.removeItem(PROFILE_KEY);
-  localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(ONBOARDED_KEY);
-  localStorage.removeItem('remedy_history');
-  localStorage.removeItem(SLEEP_KEY);
-}
-
-/**
- * Add a drink at an arbitrary timestamp.
- * If the drink is from today, adds to the current session.
- * If it's from a past date, adds to history.
- * Returns true if it was added to today's session (caller should reload drinks).
- */
-export function addHistoricalDrink(drink: Drink): boolean {
-  const drinkTs = new Date(drink.timestamp);
-  const shifted = new Date(drinkTs.getTime() - 5 * 60 * 60 * 1000);
-  const drinkDate = shifted.toLocaleDateString('en-CA');
-  const today = getSessionDateKey();
-
-  if (drinkDate === today) {
-    // Add to current session
-    const current = loadDrinks();
-    current.push(drink);
-    saveDrinks(current);
-    return true;
-  }
-
-  // Add to history archive
-  const historyKey = 'remedy_history';
-  const history = JSON.parse(localStorage.getItem(historyKey) || '[]') as {
-    date: string;
-    drinks: Drink[];
-  }[];
-
-  const existing = history.find((h) => h.date === drinkDate);
-  if (existing) {
-    existing.drinks.push(drink);
-  } else {
-    history.push({ date: drinkDate, drinks: [drink] });
-    history.sort((a, b) => a.date.localeCompare(b.date));
-  }
-
-  // Keep last 90 days
-  if (history.length > 90) {
-    history.splice(0, history.length - 90);
-  }
-
-  localStorage.setItem(historyKey, JSON.stringify(history));
-  return false;
+  // Fallback for older webviews.
+  return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
