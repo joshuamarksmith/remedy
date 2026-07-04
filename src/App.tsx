@@ -4,6 +4,7 @@ import {
   estimateRemReductionForSession,
   generateId,
   SESSION_ROLLOVER_HOURS,
+  sessionDateKey,
   type Drink,
   type BACState,
 } from './lib/bac';
@@ -103,21 +104,35 @@ function App() {
     [whatIfMode, whatIfDrinks, now]
   );
 
-  // Advance the clock every second so BAC and countdowns stay fresh
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
+  // If the app stays open across the 5 AM session rollover, archive the
+  // finished session and start fresh — matching what a reload would do.
+  // loadDrinks() detects the stale session key, archives, and returns [].
+  const sessionKeyRef = useRef(sessionDateKey(now));
+  const refreshClock = useCallback(() => {
+    setNow(Date.now());
+    const key = sessionDateKey(Date.now());
+    if (key !== sessionKeyRef.current) {
+      sessionKeyRef.current = key;
+      setDrinks(loadDrinks());
+      setWhatIfMode(false);
+    }
   }, []);
 
+  // Advance the clock every second so BAC and countdowns stay fresh
+  useEffect(() => {
+    const interval = setInterval(refreshClock, 1000);
+    return () => clearInterval(interval);
+  }, [refreshClock]);
+
   // Background tabs throttle timers — refresh the clock immediately when
-  // the user returns so BAC and countdowns aren't stale
+  // the user returns so BAC, countdowns, and the session aren't stale
   useEffect(() => {
     const onVisible = () => {
-      if (!document.hidden) setNow(Date.now());
+      if (!document.hidden) refreshClock();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, []);
+  }, [refreshClock]);
 
   // While sleep tracking is on, watch for the 5 AM session rollover and
   // reload last-night data when it happens (app left open overnight)

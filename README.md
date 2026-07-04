@@ -50,4 +50,4 @@ npm run deploy
 
 ## Tech
 
-React 19, TypeScript, Vite 8, Tailwind CSS v4. No chart library — the BAC curve is drawn on canvas. All data stays in localStorage.
+React 19, TypeScript, Vite 8, Tailwind CSS v4. No chart library — the BAC curve is drawn on canvas. All data stays in localStorage. A service worker (vite-plugin-pwa) precaches the app, so it installs to the home screen and works fully offline.
