@@ -81,6 +81,18 @@ describe('calculatePeakBAC', () => {
     const current = calculateBAC([drink], profile, Date.now());
     expect(peak).toBeGreaterThanOrEqual(current);
   });
+
+  it('peak can come from an earlier drink cluster, not just the last drink', () => {
+    // 4 drinks 12 hours ago (BAC fully cleared since), then 1 drink now.
+    // Peak was during the earlier cluster, not at the last drink.
+    const earlier = Array.from({ length: 4 }, (_, i) => makeDrink(12 * 60 + i));
+    const lastDrink = makeDrink(0);
+    const drinks = [...earlier, lastDrink];
+
+    const peak = calculatePeakBAC(drinks, profile);
+    const bacAtLastDrink = calculateBAC(drinks, profile, lastDrink.timestamp);
+    expect(peak).toBeGreaterThan(bacAtLastDrink);
+  });
 });
 
 describe('findSoberTime', () => {
@@ -102,6 +114,19 @@ describe('findSoberTime', () => {
     const sober = findSoberTime([drink], profile);
     const bacAtSober = calculateBAC([drink], profile, sober);
     expect(bacAtSober).toBeLessThanOrEqual(0.001);
+  });
+
+  it('is deterministic while drinks are unchanged, even as time passes', () => {
+    // The search is anchored to the last drink, so results must not jitter
+    // between calls — downstream effects (notification scheduling) key off this.
+    const drink = makeDrink(10);
+    const first = findSoberTime([drink], profile);
+
+    const spy = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+    const second = findSoberTime([drink], profile);
+    spy.mockRestore();
+
+    expect(second).toBe(first);
   });
 });
 

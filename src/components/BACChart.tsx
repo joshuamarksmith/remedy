@@ -14,6 +14,7 @@ interface BACChartProps {
   drinks: Drink[];
   profile: UserProfile;
   hypotheticalDrinks?: Drink[];
+  now: number;
 }
 
 interface Viewport {
@@ -37,6 +38,7 @@ export const BACChart = memo(function BACChart({
   drinks,
   profile,
   hypotheticalDrinks = [],
+  now,
 }: BACChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -64,7 +66,7 @@ export const BACChart = memo(function BACChart({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 2;
+    const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
@@ -196,7 +198,6 @@ export const BACChart = memo(function BACChart({
     }
 
     // "Now" marker
-    const now = Date.now();
     if (now >= vp.minTime && now <= vp.maxTime) {
       const nowX = timeToX(vp, now);
       ctx.beginPath();
@@ -213,7 +214,7 @@ export const BACChart = memo(function BACChart({
       ctx.textAlign = 'center';
       ctx.fillText('now', nowX, vp.pad.top - 6);
     }
-  }, [realCurve, hypotheticalCurve, drinks, hypotheticalDrinks]);
+  }, [realCurve, hypotheticalCurve, drinks, hypotheticalDrinks, now]);
 
   if (drinks.length === 0 && hypotheticalDrinks.length === 0) {
     return (

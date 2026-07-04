@@ -6,7 +6,7 @@ import {
   type BACState,
 } from './lib/bac';
 import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink, loadSleepRecord, saveSleepRecord } from './lib/storage';
-import { scheduleREMClearNotification, cancelREMClearNotification } from './lib/notifications';
+import { scheduleREMClearNotification, cancelREMClearNotification, clearNotificationState } from './lib/notifications';
 import { Onboarding } from './components/Onboarding';
 import type { UserProfile } from './lib/bac';
 import { STATUS_TEXT_CLASS, STATUS_BORDER_CLASS, formatDrinkCount } from './lib/theme';
@@ -56,12 +56,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'settings', label: 'Settings' },
 ];
 
-// Memoized date string — only changes once per day
-const todayString = new Date().toLocaleDateString('en-US', {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-});
+// Stable empty list — keeps memo/effect dependencies quiet when what-if is off
+const NO_HYPOTHETICAL_DRINKS: Drink[] = [];
 
 function App() {
   const [showOnboarding, setShowOnboarding] = useState(() => !hasOnboarded());
@@ -75,7 +71,7 @@ function App() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showSetupPrompt, setShowSetupPrompt] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
-  const [tick, setTick] = useState(0); // force re-render every second
+  const [now, setNow] = useState(() => Date.now()); // refreshed every second
 
   // "Last night" = yesterday's date for sleep entry
   const lastNightDate = useMemo(() => {
@@ -89,18 +85,18 @@ function App() {
   const pulseTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const undoTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Stable hypothetical drinks list
+  // Hypothetical drink pinned to the current moment ("one more right now")
   const hypotheticalDrinksList = useMemo<Drink[]>(
     () =>
       whatIfMode
-        ? [{ id: 'hypothetical', timestamp: Date.now(), standardDrinks: whatIfDrinks }]
-        : [],
-    [whatIfMode, whatIfDrinks, tick] // tick ensures timestamp freshness
+        ? [{ id: 'hypothetical', timestamp: now, standardDrinks: whatIfDrinks }]
+        : NO_HYPOTHETICAL_DRINKS,
+    [whatIfMode, whatIfDrinks, now]
   );
 
-  // Tick every second — but only re-render if BAC has meaningfully changed
+  // Advance the clock every second so BAC and countdowns stay fresh
   useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -116,7 +112,6 @@ function App() {
   const bacState: BACState = useMemo(() => {
     if (drinks.length === 0 && !whatIfMode) {
       // Fast path: no drinks, skip all computation
-      const now = Date.now();
       return {
         currentBAC: 0,
         peakBAC: 0,
@@ -130,17 +125,27 @@ function App() {
       };
     }
     return calculateBACState(drinks, profile, hypotheticalDrinksList);
-  }, [drinks, profile, hypotheticalDrinksList]);
+  }, [drinks, profile, hypotheticalDrinksList, whatIfMode, now]);
 
-  // Schedule/cancel REM-clear notification when BAC state changes
+  // Notification target from REAL drinks only — a what-if preview must never
+  // schedule an OS notification. Recomputes only when logged drinks change,
+  // and the threshold search is deterministic, so the effect below fires once
+  // per drink change instead of every second.
+  const notificationTarget = useMemo(() => {
+    if (drinks.length === 0) return null;
+    const state = calculateBACState(drinks, profile);
+    return { at: state.lowImpactAtTimestamp, quality: state.sleepQuality };
+  }, [drinks, profile]);
+
+  // Schedule/cancel REM-clear notification when logged drinks change
   useEffect(() => {
-    if (bacState.sleepQuality === 'safe' || bacState.lowImpactAtTimestamp <= Date.now()) {
+    if (!notificationTarget || notificationTarget.quality === 'safe' || notificationTarget.at <= Date.now()) {
       cancelREMClearNotification();
     } else {
-      scheduleREMClearNotification(bacState.lowImpactAtTimestamp);
+      scheduleREMClearNotification(notificationTarget.at);
     }
     return () => cancelREMClearNotification();
-  }, [bacState.lowImpactAtTimestamp, bacState.sleepQuality]);
+  }, [notificationTarget]);
 
   // Persist on change (not in effects — direct in handlers)
   const updateDrinks = useCallback(
@@ -213,6 +218,13 @@ function App() {
 
   const statusColor = STATUS_TEXT_CLASS[bacState.sleepQuality];
   const statusBorder = STATUS_BORDER_CLASS[bacState.sleepQuality];
+
+  // Derived from the ticking clock so it rolls over at midnight
+  const todayString = new Date(now).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
 
   if (showOnboarding) {
     return (
@@ -321,12 +333,12 @@ function App() {
                 <button
                   onClick={() => {
                     const val = parseFloat(customAmount);
-                    if (val > 0) {
+                    if (val >= 0.1 && val <= 10) {
                       addDrink(val);
                       setCustomAmount('');
                     }
                   }}
-                  disabled={!customAmount || parseFloat(customAmount) <= 0 || isNaN(parseFloat(customAmount))}
+                  disabled={isNaN(parseFloat(customAmount)) || parseFloat(customAmount) < 0.1 || parseFloat(customAmount) > 10}
                   className="bg-accent-teal/15 text-accent-teal px-5 py-2.5 rounded-xl font-medium disabled:opacity-30 press-bounce"
                 >
                   Add
@@ -464,6 +476,7 @@ function App() {
               drinks={drinks}
               profile={profile}
               hypotheticalDrinks={hypotheticalDrinksList}
+              now={now}
             />
           </div>
         )}
@@ -474,12 +487,14 @@ function App() {
               drinks={drinks}
               profile={profile}
               hypotheticalDrinks={hypotheticalDrinksList}
+              now={now}
             />
             <Timeline
               drinks={drinks}
               profile={profile}
               hypotheticalDrinks={hypotheticalDrinksList}
               bacState={bacState}
+              now={now}
             />
             {drinks.length === 0 && (
               <div className="text-center py-12">
@@ -496,6 +511,7 @@ function App() {
         {activeTab === 'log' && <DrinkLog drinks={drinks} onRemove={removeDrink} />}
         {activeTab === 'settings' && <Settings profile={profile} onUpdate={updateProfile} showSetupPrompt={showSetupPrompt} onReset={() => {
                   resetApp();
+                  clearNotificationState();
                   setShowOnboarding(true);
                   setDrinks([]);
                   setProfile(loadProfile());
@@ -508,8 +524,8 @@ function App() {
                   const isToday = addHistoricalDrink(drink);
                   if (isToday) setDrinks(loadDrinks());
                 }} onNotificationsChanged={(enabled) => {
-                  if (enabled && bacState.sleepQuality !== 'safe' && bacState.lowImpactAtTimestamp > Date.now()) {
-                    scheduleREMClearNotification(bacState.lowImpactAtTimestamp);
+                  if (enabled && notificationTarget && notificationTarget.quality !== 'safe' && notificationTarget.at > Date.now()) {
+                    scheduleREMClearNotification(notificationTarget.at);
                   }
                 }} />}
       </main>

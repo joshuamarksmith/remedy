@@ -14,6 +14,7 @@ interface TimelineProps {
   profile: UserProfile;
   hypotheticalDrinks?: Drink[];
   bacState: BACState;
+  now: number;
 }
 
 interface TimelineEvent {
@@ -28,11 +29,11 @@ export const Timeline = memo(function Timeline({
   profile,
   hypotheticalDrinks = [],
   bacState,
+  now,
 }: TimelineProps) {
   const events = useMemo(() => {
     const allDrinks = [...drinks, ...hypotheticalDrinks];
     const evts: TimelineEvent[] = [];
-    const now = Date.now();
 
     for (const d of drinks) {
       const bac = calculateBAC(drinks, profile, d.timestamp + 100);
@@ -83,7 +84,7 @@ export const Timeline = memo(function Timeline({
 
     evts.sort((a, b) => a.timestamp - b.timestamp);
     return evts;
-  }, [drinks, profile, hypotheticalDrinks]);
+  }, [drinks, profile, hypotheticalDrinks, bacState.soberAtTimestamp, bacState.lowImpactAtTimestamp, now]);
 
   if (drinks.length === 0 && hypotheticalDrinks.length === 0) return null;
 
@@ -95,7 +96,7 @@ export const Timeline = memo(function Timeline({
 
         {events.map((evt, i) => {
           const style = EVENT_STYLES[evt.type];
-          const isPast = evt.timestamp <= Date.now();
+          const isPast = evt.timestamp <= now;
           const opacity =
             evt.type === 'hypothetical'
               ? 'opacity-60'

@@ -90,12 +90,17 @@ export function calculateBAC(
 }
 
 /**
- * Calculate peak BAC (at the time of the last drink).
+ * Calculate peak BAC. Under instantaneous absorption, BAC only rises at
+ * drink events, so the peak is at one of the drink timestamps — not
+ * necessarily the last one (BAC can fully clear between distant drinks).
  */
 export function calculatePeakBAC(drinks: Drink[], profile: UserProfile): number {
   if (drinks.length === 0) return 0;
-  const lastDrinkTime = Math.max(...drinks.map((d) => d.timestamp));
-  return calculateBAC(drinks, profile, lastDrinkTime);
+  let peak = 0;
+  for (const d of drinks) {
+    peak = Math.max(peak, calculateBAC(drinks, profile, d.timestamp));
+  }
+  return peak;
 }
 
 /**
@@ -103,25 +108,7 @@ export function calculatePeakBAC(drinks: Drink[], profile: UserProfile): number 
  */
 export function findSoberTime(drinks: Drink[], profile: UserProfile): number {
   if (drinks.length === 0) return Date.now();
-
-  const now = Date.now();
-  const currentBAC = calculateBAC(drinks, profile, now);
-  if (currentBAC <= 0) return now;
-
-  const estimatedHours = currentBAC / ELIMINATION_RATE;
-  let low = now;
-  let high = now + (estimatedHours + 2) * 60 * 60 * 1000;
-
-  while (high - low > 60000) {
-    const mid = (low + high) / 2;
-    if (calculateBAC(drinks, profile, mid) > 0.001) {
-      low = mid;
-    } else {
-      high = mid;
-    }
-  }
-
-  return high;
+  return findBACThresholdTime(drinks, profile, 0.001);
 }
 
 /**
@@ -170,6 +157,11 @@ function lowImpactBACThreshold(sex: 'male' | 'female'): number {
 
 /**
  * Find when BAC drops to a given threshold (binary search).
+ *
+ * Search bounds are anchored to the last drink, not to the current time,
+ * so repeated calls return the same timestamp while drinks are unchanged.
+ * (Bounds anchored at a moving "now" made the result jitter by up to a
+ * minute per call, which caused downstream effects to re-fire constantly.)
  */
 function findBACThresholdTime(
   drinks: Drink[],
@@ -180,9 +172,11 @@ function findBACThresholdTime(
   const currentBAC = calculateBAC(drinks, profile, now);
   if (currentBAC <= threshold) return now;
 
-  const hoursToThreshold = (currentBAC - threshold) / ELIMINATION_RATE;
-  let low = now;
-  let high = now + (hoursToThreshold + 2) * 60 * 60 * 1000;
+  const lastDrinkTime = Math.max(...drinks.map((d) => d.timestamp));
+  const bacAtLastDrink = calculateBAC(drinks, profile, lastDrinkTime);
+  const hoursToThreshold = Math.max(0, bacAtLastDrink - threshold) / ELIMINATION_RATE;
+  let low = lastDrinkTime;
+  let high = lastDrinkTime + (hoursToThreshold + 2) * 60 * 60 * 1000;
 
   while (high - low > 60000) {
     const mid = (low + high) / 2;

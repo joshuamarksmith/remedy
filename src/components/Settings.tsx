@@ -9,6 +9,16 @@ import {
 
 const LBS_PER_KG = 2.20462;
 
+// Plausible adult body weight range — also guards against committing
+// partially-typed values (e.g. the "9" on the way to "90") to the profile,
+// which would briefly produce absurd BAC estimates.
+const MIN_WEIGHT_LBS = 50;
+const MAX_WEIGHT_LBS = 1000;
+
+function isValidWeightLbs(lbs: number): boolean {
+  return !isNaN(lbs) && lbs >= MIN_WEIGHT_LBS && lbs <= MAX_WEIGHT_LBS;
+}
+
 function lbsToKg(lbs: number): number {
   return lbs / LBS_PER_KG;
 }
@@ -37,6 +47,7 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
   const [pastTime, setPastTime] = useState('20:00');
   const [pastAmount, setPastAmount] = useState('1');
   const [pastConfirmation, setPastConfirmation] = useState('');
+  const [pastError, setPastError] = useState(false);
   const [notifyDenied, setNotifyDenied] = useState(false);
 
   return (
@@ -69,14 +80,14 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
             onChange={(e) => {
               setWeightInput(e.target.value);
               const lbs = parseFloat(e.target.value);
-              if (lbs > 0) {
+              if (isValidWeightLbs(lbs)) {
                 onUpdate({ ...profile, weightKg: lbsToKg(lbs) });
               }
             }}
             onBlur={() => {
               setEditingWeight(false);
               const lbs = parseFloat(weightInput);
-              if (lbs > 0) {
+              if (isValidWeightLbs(lbs)) {
                 onUpdate({ ...profile, weightKg: lbsToKg(lbs) });
               }
             }}
@@ -267,10 +278,17 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
               onClick={() => {
                 if (!pastDate) return;
                 const val = parseFloat(pastAmount);
-                if (!val || val <= 0) return;
+                if (!val || val <= 0 || val > 20) return;
                 const [y, mo, d] = pastDate.split('-').map(Number);
                 const [h, m] = pastTime.split(':').map(Number);
                 const ts = new Date(y, mo - 1, d, h, m).getTime();
+                if (ts > Date.now()) {
+                  setPastError(true);
+                  setPastConfirmation('That time is in the future. Pick a past time.');
+                  setTimeout(() => setPastConfirmation(''), 3000);
+                  return;
+                }
+                setPastError(false);
                 onAddHistorical(ts, val);
                 setPastConfirmation(`Added ${val} drink${val !== 1 ? 's' : ''} on ${pastDate}`);
                 setPastAmount('1');
@@ -282,7 +300,7 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
               Add to history
             </button>
             {pastConfirmation && (
-              <p className="text-xs text-accent-green animate-pop-in">{pastConfirmation}</p>
+              <p className={`text-xs animate-pop-in ${pastError ? 'text-accent-red' : 'text-accent-green'}`}>{pastConfirmation}</p>
             )}
           </div>
         )}
