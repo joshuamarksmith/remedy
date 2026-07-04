@@ -1,4 +1,5 @@
 import { memo, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import type { UserProfile } from '../lib/bac';
 import {
   isNotificationEnabled,
@@ -174,6 +175,11 @@ export const Settings = memo(function Settings({ profile, onUpdate, onReset, onA
         {notifyDenied && (
           <p className="text-xs text-accent-red mt-2 animate-slide-up">
             Notifications are blocked. Check your browser or device settings to allow them.
+          </p>
+        )}
+        {notifyEnabled && !Capacitor.isNativePlatform() && (
+          <p className="text-xs text-text-muted mt-2">
+            In the browser, this reminder only fires while remedy is open in a tab.
           </p>
         )}
       </div>

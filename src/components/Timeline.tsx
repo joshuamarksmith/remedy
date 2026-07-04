@@ -13,7 +13,10 @@ interface TimelineProps {
   drinks: Drink[];
   profile: UserProfile;
   hypotheticalDrinks?: Drink[];
+  /** Real state from logged drinks — milestones come from this */
   bacState: BACState;
+  /** Projected state including hypothetical drinks, when what-if is on */
+  whatIfState?: BACState | null;
   now: number;
 }
 
@@ -29,10 +32,10 @@ export const Timeline = memo(function Timeline({
   profile,
   hypotheticalDrinks = [],
   bacState,
+  whatIfState = null,
   now,
 }: TimelineProps) {
   const events = useMemo(() => {
-    const allDrinks = [...drinks, ...hypotheticalDrinks];
     const evts: TimelineEvent[] = [];
 
     for (const d of drinks) {
@@ -50,11 +53,15 @@ export const Timeline = memo(function Timeline({
         timestamp: d.timestamp,
         type: 'hypothetical',
         label: `+${d.standardDrinks} hypothetical`,
-        sublabel: 'What-if preview',
+        sublabel:
+          whatIfState && whatIfState.timeToLowImpactMs > 0
+            ? `Sleep would clear ${formatTime(whatIfState.lowImpactAtTimestamp)}`
+            : 'What-if preview',
       });
     }
 
-    const currentBAC = allDrinks.length > 0 ? calculateBAC(allDrinks, profile, now) : 0;
+    // "Now" reflects logged drinks only — hypotheticals are previews
+    const currentBAC = drinks.length > 0 ? calculateBAC(drinks, profile, now) : 0;
     evts.push({
       timestamp: now,
       type: 'now',
@@ -62,7 +69,7 @@ export const Timeline = memo(function Timeline({
       sublabel: currentBAC > 0.001 ? `BAC ${formatBAC(currentBAC)}` : 'Sober',
     });
 
-    if (allDrinks.length > 0) {
+    if (drinks.length > 0) {
       if (bacState.soberAtTimestamp > now) {
         evts.push({
           timestamp: bacState.soberAtTimestamp,
@@ -84,7 +91,7 @@ export const Timeline = memo(function Timeline({
 
     evts.sort((a, b) => a.timestamp - b.timestamp);
     return evts;
-  }, [drinks, profile, hypotheticalDrinks, bacState.soberAtTimestamp, bacState.lowImpactAtTimestamp, now]);
+  }, [drinks, profile, hypotheticalDrinks, bacState.soberAtTimestamp, bacState.lowImpactAtTimestamp, whatIfState, now]);
 
   if (drinks.length === 0 && hypotheticalDrinks.length === 0) return null;
 

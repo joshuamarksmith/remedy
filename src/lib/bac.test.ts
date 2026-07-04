@@ -4,6 +4,7 @@ import {
   calculatePeakBAC,
   findSoberTime,
   calculateBACState,
+  estimateRemReductionForSession,
   formatCountdown,
   formatBAC,
   type Drink,
@@ -229,6 +230,87 @@ describe('calculateBACState — sleep quality vs sobriety', () => {
       bedtime.setHours(22, 0, 0, 0);
       expect(state.lowImpactAtTimestamp).toBeLessThanOrEqual(bedtime.getTime());
     }
+  });
+});
+
+describe('calculateBACState — late-night sessions past bedtime', () => {
+  let dateSpy: ReturnType<typeof vi.spyOn>;
+
+  afterEach(() => {
+    dateSpy.mockRestore();
+  });
+
+  it('is NOT safe when still drinking at 3:30 AM past a 23:00 bedtime', () => {
+    // The old 4-hour bedtime lookback flipped to "tomorrow night's bedtime"
+    // at 3:00 AM, declaring a heavily-intoxicated user "safe". A passed
+    // bedtime must count for the whole session (until the 5 AM rollover).
+    const fixedNow = new Date();
+    fixedNow.setHours(3, 30, 0, 0);
+    dateSpy = vi.spyOn(Date, 'now').mockReturnValue(fixedNow.getTime());
+
+    const nightProfile: UserProfile = { weightKg: 80, sex: 'male', bedtime: '23:00' };
+    const now = Date.now();
+    // 6 drinks between 10 PM and 3 AM — BAC is high right now
+    const drinks = Array.from({ length: 6 }, (_, i) =>
+      makeDrinkAt(now - (5.5 - i) * 60 * 60 * 1000)
+    );
+    const state = calculateBACState(drinks, nightProfile);
+
+    expect(state.currentBAC).toBeGreaterThan(0.05);
+    expect(state.sleepQuality).toBe('danger');
+  });
+
+  it('targets tonight’s upcoming bedtime during the evening', () => {
+    const fixedNow = new Date();
+    fixedNow.setHours(18, 0, 0, 0);
+    dateSpy = vi.spyOn(Date, 'now').mockReturnValue(fixedNow.getTime());
+
+    // Light, early drink — clears well before a 23:00 bedtime
+    const drink = makeDrinkAt(Date.now() - 2 * 60 * 60 * 1000);
+    const state = calculateBACState([drink], { weightKg: 80, sex: 'male', bedtime: '23:00' });
+
+    expect(state.sleepQuality).toBe('safe');
+  });
+});
+
+describe('estimateRemReductionForSession', () => {
+  const p: UserProfile = { weightKg: 80, sex: 'male', bedtime: '23:00' };
+
+  it('returns 0 for an empty session', () => {
+    expect(estimateRemReductionForSession([], p, '2026-06-30')).toBe(0);
+  });
+
+  it('predicts REM loss from a past evening session', () => {
+    // 4 standard drinks between 8 and 9 PM on June 30, bedtime 23:00
+    const eight = new Date(2026, 5, 30, 20, 0).getTime();
+    const drinks = [makeDrinkAt(eight, 2), makeDrinkAt(eight + 60 * 60 * 1000, 2)];
+    const loss = estimateRemReductionForSession(drinks, p, '2026-06-30');
+
+    expect(loss).toBeGreaterThan(5);
+    expect(loss).toBeLessThan(96);
+  });
+
+  it('drinking closer to bedtime predicts a bigger loss', () => {
+    const early = new Date(2026, 5, 30, 18, 0).getTime();
+    const late = new Date(2026, 5, 30, 22, 30).getTime();
+    const lossEarly = estimateRemReductionForSession([makeDrinkAt(early, 3)], p, '2026-06-30');
+    const lossLate = estimateRemReductionForSession([makeDrinkAt(late, 3)], p, '2026-06-30');
+
+    expect(lossLate).toBeGreaterThan(lossEarly);
+  });
+
+  it('places an after-midnight bedtime on the next calendar day', () => {
+    // Drinks at 11:30 PM July 1; bedtime 01:00 belongs to July 2.
+    // If the bedtime were (wrongly) placed on July 1, it would fall BEFORE
+    // the drinks and the estimate would equal the last-drink estimate.
+    const lateNight = new Date(2026, 6, 1, 23, 30).getTime();
+    const drinks = [makeDrinkAt(lateNight, 3)];
+    const lossLateBed = estimateRemReductionForSession(drinks, { ...p, bedtime: '01:00' }, '2026-07-01');
+    const lossAtLastDrink = estimateRemReductionForSession(drinks, { ...p, bedtime: '23:00' }, '2026-07-01');
+
+    // 1.5 extra hours of elimination before the 01:00 bedtime → smaller loss
+    expect(lossLateBed).toBeLessThan(lossAtLastDrink);
+    expect(lossLateBed).toBeGreaterThan(0);
   });
 });
 

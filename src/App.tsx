@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   calculateBACState,
+  estimateRemReductionForSession,
   generateId,
+  SESSION_ROLLOVER_HOURS,
   type Drink,
   type BACState,
 } from './lib/bac';
-import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink, loadSleepRecord, saveSleepRecord } from './lib/storage';
+import { loadDrinks, saveDrinks, loadProfile, saveProfile, hasOnboarded, setOnboarded, resetApp, addHistoricalDrink, loadSleepRecord, saveSleepRecord, loadSessionDrinks } from './lib/storage';
 import { scheduleREMClearNotification, cancelREMClearNotification, clearNotificationState } from './lib/notifications';
 import { Onboarding } from './components/Onboarding';
 import type { UserProfile } from './lib/bac';
-import { STATUS_TEXT_CLASS, STATUS_BORDER_CLASS, formatDrinkCount } from './lib/theme';
+import { STATUS_TEXT_CLASS, STATUS_BORDER_CLASS, formatDrinkCount, formatTime, qualityFromBAC } from './lib/theme';
 import { BACGauge } from './components/BACGauge';
 import { BACChart } from './components/BACChart';
 import { Timeline } from './components/Timeline';
@@ -73,14 +75,21 @@ function App() {
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now()); // refreshed every second
 
-  // "Last night" = yesterday's date for sleep entry
-  const lastNightDate = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
-  }, []);
+  // "Last night" = the previous drinking session (session days roll over at
+  // 5 AM, matching storage). At 2 AM this is the night BEFORE the one in
+  // progress — the one whose sleep you could actually have recorded.
+  const lastNight = new Date(now - SESSION_ROLLOVER_HOURS * 60 * 60 * 1000);
+  lastNight.setDate(lastNight.getDate() - 1);
+  const lastNightDate = lastNight.toLocaleDateString('en-CA'); // YYYY-MM-DD
+
   const [sleepRecord, setSleepRecord] = useState<SleepRecord | null>(() =>
     profile.experimentalSleep ? loadSleepRecord(lastNightDate) : null
+  );
+  // NOTE: the `drinks` initializer above already ran loadDrinks(), which
+  // archives a finished session into history — so last night's drinks are
+  // reliably in history (or still live under lastNightDate's session key).
+  const [lastNightDrinks, setLastNightDrinks] = useState<Drink[]>(() =>
+    profile.experimentalSleep ? loadSessionDrinks(lastNightDate) : []
   );
   const pulseTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const undoTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -100,6 +109,35 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Background tabs throttle timers — refresh the clock immediately when
+  // the user returns so BAC and countdowns aren't stale
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden) setNow(Date.now());
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
+  // While sleep tracking is on, watch for the 5 AM session rollover and
+  // reload last-night data when it happens (app left open overnight)
+  const loadedSleepForRef = useRef(lastNightDate);
+  useEffect(() => {
+    if (!profile.experimentalSleep) return;
+    const check = () => {
+      const d = new Date(Date.now() - SESSION_ROLLOVER_HOURS * 60 * 60 * 1000);
+      d.setDate(d.getDate() - 1);
+      const key = d.toLocaleDateString('en-CA');
+      if (key !== loadedSleepForRef.current) {
+        loadedSleepForRef.current = key;
+        setSleepRecord(loadSleepRecord(key));
+        setLastNightDrinks(loadSessionDrinks(key));
+      }
+    };
+    const interval = setInterval(check, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [profile.experimentalSleep]);
+
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
@@ -108,9 +146,10 @@ function App() {
     };
   }, []);
 
-  // Derive BAC state (no redundant state — just computed)
+  // Derive BAC state from LOGGED drinks only — the gauge, status card, and
+  // timeline always reflect reality. What-if projections live in whatIfState.
   const bacState: BACState = useMemo(() => {
-    if (drinks.length === 0 && !whatIfMode) {
+    if (drinks.length === 0) {
       // Fast path: no drinks, skip all computation
       return {
         currentBAC: 0,
@@ -124,8 +163,20 @@ function App() {
         timeToLowImpactMs: 0,
       };
     }
-    return calculateBACState(drinks, profile, hypotheticalDrinksList);
-  }, [drinks, profile, hypotheticalDrinksList, whatIfMode, now]);
+    return calculateBACState(drinks, profile);
+  }, [drinks, profile, now]);
+
+  // Projected state if the hypothetical drink(s) were added right now
+  const whatIfState: BACState | null = useMemo(
+    () => (whatIfMode ? calculateBACState(drinks, profile, hypotheticalDrinksList) : null),
+    [whatIfMode, drinks, profile, hypotheticalDrinksList]
+  );
+
+  // Predicted REM loss for last night's session (experimental sleep tracking)
+  const lastNightPredictedRemLoss = useMemo(
+    () => estimateRemReductionForSession(lastNightDrinks, profile, lastNightDate),
+    [lastNightDrinks, profile, lastNightDate]
+  );
 
   // Notification target from REAL drinks only — a what-if preview must never
   // schedule an OS notification. Recomputes only when logged drinks change,
@@ -162,9 +213,10 @@ function App() {
   const updateProfile = useCallback((p: UserProfile) => {
     setProfile(p);
     saveProfile(p);
-    // Load sleep record when experimental sleep is toggled on
+    // Load last-night data when sleep tracking is toggled on
     if (p.experimentalSleep && !profile.experimentalSleep) {
       setSleepRecord(loadSleepRecord(lastNightDate));
+      setLastNightDrinks(loadSessionDrinks(lastNightDate));
     }
   }, [profile.experimentalSleep, lastNightDate]);
 
@@ -255,9 +307,10 @@ function App() {
       <main className="flex-1 px-4 overflow-y-auto">
         {activeTab === 'home' && (
           <div className="stagger-children space-y-4">
-            {/* BAC Gauge */}
+            {/* BAC Gauge — colored by the BAC level itself; the status card
+                below carries the bedtime-based sleep verdict */}
             <div className={`flex justify-center py-4 transition-transform duration-300 ${drinkPulse ? 'animate-drink-pop' : ''}`}>
-              <BACGauge bac={bacState.currentBAC} quality={bacState.sleepQuality} />
+              <BACGauge bac={bacState.currentBAC} quality={qualityFromBAC(bacState.currentBAC)} />
             </div>
 
             {/* Tonight's Sleep */}
@@ -274,10 +327,10 @@ function App() {
                   </p>
                 </>
               ) : (() => {
-                // Is "wait until X" realistic? If the clear time is more than 3 hours
-                // past bedtime, staying up that long is worse than sleeping with alcohol.
-                const waitHours = bacState.timeToLowImpactMs / (1000 * 60 * 60);
-                const clearTimeIsRealistic = bacState.timeToLowImpactMs > 0 && waitHours <= 3;
+                // Is "wait until X" realistic advice? If the clear time is more
+                // than 3 hours away, staying up that long is worse than sleeping
+                // with alcohol \u2014 state the clear time as information instead.
+                const waitIsRealistic = bacState.timeToLowImpactMs / (1000 * 60 * 60) <= 3;
 
                 return (
                   <>
@@ -291,14 +344,14 @@ function App() {
                         ? 'Alcohol is disrupting your body\u2019s ability to get restorative sleep.'
                         : `You could lose ~${Math.round(bacState.remReductionMinutes)} minutes of restorative sleep tonight.`}
                     </p>
-                    {clearTimeIsRealistic && (
+                    {bacState.timeToLowImpactMs > 0 && (
                       <div className="mt-3 pt-3 border-t border-border-glass">
                         <p className="text-sm text-text-secondary">
-                          Wait until{' '}
+                          {waitIsRealistic ? 'Wait until ' : 'Alcohol clears from your sleep around '}
                           <span className="font-semibold text-accent-teal">
-                            {new Date(bacState.lowImpactAtTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            {formatTime(bacState.lowImpactAtTimestamp)}
                           </span>
-                          {' '}for better sleep
+                          {waitIsRealistic ? ' for better sleep' : ''}
                         </p>
                       </div>
                     )}
@@ -406,11 +459,38 @@ function App() {
                       +
                     </button>
                     <span className="text-sm text-text-muted">
-                      hypothetical drink{whatIfDrinks > 1 ? 's' : ''}
+                      more drink{whatIfDrinks > 1 ? 's' : ''} right now
                     </span>
                   </div>
+                  {whatIfState && (
+                    <div className="mb-2 pt-2 border-t border-border-glass space-y-1">
+                      <p className="text-sm text-text-secondary">
+                        {whatIfState.timeToLowImpactMs > 0 ? (
+                          <>
+                            Sleep would clear at{' '}
+                            <span className="font-semibold text-accent-blue">
+                              {formatTime(whatIfState.lowImpactAtTimestamp)}
+                            </span>
+                            {whatIfState.lowImpactAtTimestamp - bacState.lowImpactAtTimestamp > 60 * 1000 && bacState.timeToLowImpactMs > 0 && (
+                              <span className="text-text-muted"> (instead of {formatTime(bacState.lowImpactAtTimestamp)})</span>
+                            )}
+                          </>
+                        ) : (
+                          'Your sleep would still be clear'
+                        )}
+                      </p>
+                      {Math.round(whatIfState.remReductionMinutes) > Math.round(bacState.remReductionMinutes) && (
+                        <p className="text-xs text-text-muted">
+                          ~{Math.round(whatIfState.remReductionMinutes)} min of REM lost at bedtime
+                          {Math.round(bacState.remReductionMinutes) > 0
+                            ? ` (vs ~${Math.round(bacState.remReductionMinutes)} without)`
+                            : ''}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <p className="text-xs text-text-muted">
-                    Dashed line on chart shows projected BAC
+                    Preview only. Your gauge shows logged drinks; the dashed chart line shows this projection
                   </p>
                 </div>
               )}
@@ -461,12 +541,14 @@ function App() {
               )}
             </div>
 
-            {/* Sleep Tracking (Experimental) */}
+            {/* Sleep Tracking (Experimental) — keyed by date so it remounts
+                cleanly when the session day rolls over at 5 AM */}
             {profile.experimentalSleep && (
               <SleepEntry
+                key={lastNightDate}
                 date={lastNightDate}
                 existing={sleepRecord}
-                bacState={bacState}
+                predictedRemLossMinutes={lastNightPredictedRemLoss}
                 onSave={handleSaveSleep}
               />
             )}
@@ -494,6 +576,7 @@ function App() {
               profile={profile}
               hypotheticalDrinks={hypotheticalDrinksList}
               bacState={bacState}
+              whatIfState={whatIfState}
               now={now}
             />
             {drinks.length === 0 && (
@@ -523,6 +606,7 @@ function App() {
                   const drink = { id: generateId(), timestamp, standardDrinks };
                   const isToday = addHistoricalDrink(drink);
                   if (isToday) setDrinks(loadDrinks());
+                  else if (profile.experimentalSleep) setLastNightDrinks(loadSessionDrinks(lastNightDate));
                 }} onNotificationsChanged={(enabled) => {
                   if (enabled && notificationTarget && notificationTarget.quality !== 'safe' && notificationTarget.at > Date.now()) {
                     scheduleREMClearNotification(notificationTarget.at);

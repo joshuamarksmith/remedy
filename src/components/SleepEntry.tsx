@@ -1,20 +1,20 @@
 import { memo, useState } from 'react';
-import type { SleepRecord, BACState } from '../lib/bac';
+import type { SleepRecord } from '../lib/bac';
 
 interface SleepEntryProps {
   /** Date key (YYYY-MM-DD) for last night */
   date: string;
   /** Existing record for this date, if already entered */
   existing: SleepRecord | null;
-  /** BAC state from last night's session (for comparison) */
-  bacState: BACState;
+  /** Predicted REM loss (minutes) for last night's session */
+  predictedRemLossMinutes: number;
   onSave: (record: SleepRecord) => void;
 }
 
 /** Baseline REM from Ohayon et al. 2004 (~20-25% of 8h sleep) */
 const BASELINE_REM_HOURS = 1.6;
 
-export const SleepEntry = memo(function SleepEntry({ date, existing, bacState, onSave }: SleepEntryProps) {
+export const SleepEntry = memo(function SleepEntry({ date, existing, predictedRemLossMinutes, onSave }: SleepEntryProps) {
   const [remHours, setRemHours] = useState(() => existing?.remHours?.toString() ?? '');
   const [deepHours, setDeepHours] = useState(() => existing?.deepSleepHours?.toString() ?? '');
   const [saved, setSaved] = useState(!!existing);
@@ -33,7 +33,7 @@ export const SleepEntry = memo(function SleepEntry({ date, existing, bacState, o
     setSaved(true);
   };
 
-  const predictedRemHours = Math.max(0, BASELINE_REM_HOURS - bacState.remReductionMinutes / 60);
+  const predictedRemHours = Math.max(0, BASELINE_REM_HOURS - predictedRemLossMinutes / 60);
   const actualRem = parseFloat(remHours);
 
   return (
