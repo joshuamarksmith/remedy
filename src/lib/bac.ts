@@ -38,6 +38,8 @@ export interface BACState {
 }
 
 // Constants
+/** Drinking-session days roll over at 5 AM local, not midnight */
+export const SESSION_ROLLOVER_HOURS = 5;
 const ETHANOL_PER_STANDARD_DRINK_G = 14; // grams
 const ELIMINATION_RATE = 0.015; // g/dL per hour
 const WIDMARK_R_MALE = 0.68;
@@ -90,12 +92,17 @@ export function calculateBAC(
 }
 
 /**
- * Calculate peak BAC (at the time of the last drink).
+ * Calculate peak BAC. Under instantaneous absorption, BAC only rises at
+ * drink events, so the peak is at one of the drink timestamps — not
+ * necessarily the last one (BAC can fully clear between distant drinks).
  */
 export function calculatePeakBAC(drinks: Drink[], profile: UserProfile): number {
   if (drinks.length === 0) return 0;
-  const lastDrinkTime = Math.max(...drinks.map((d) => d.timestamp));
-  return calculateBAC(drinks, profile, lastDrinkTime);
+  let peak = 0;
+  for (const d of drinks) {
+    peak = Math.max(peak, calculateBAC(drinks, profile, d.timestamp));
+  }
+  return peak;
 }
 
 /**
@@ -103,37 +110,31 @@ export function calculatePeakBAC(drinks: Drink[], profile: UserProfile): number 
  */
 export function findSoberTime(drinks: Drink[], profile: UserProfile): number {
   if (drinks.length === 0) return Date.now();
+  return findBACThresholdTime(drinks, profile, 0.001);
+}
 
-  const now = Date.now();
-  const currentBAC = calculateBAC(drinks, profile, now);
-  if (currentBAC <= 0) return now;
-
-  const estimatedHours = currentBAC / ELIMINATION_RATE;
-  let low = now;
-  let high = now + (estimatedHours + 2) * 60 * 60 * 1000;
-
-  while (high - low > 60000) {
-    const mid = (low + high) / 2;
-    if (calculateBAC(drinks, profile, mid) > 0.001) {
-      low = mid;
-    } else {
-      high = mid;
-    }
-  }
-
-  return high;
+/**
+ * Session-day key (YYYY-MM-DD in local time). The day rolls over at 5 AM,
+ * so a drinking session that crosses midnight still counts as one "day".
+ * Shared with storage so bedtime logic and session archiving agree.
+ */
+export function sessionDateKey(timestamp: number): string {
+  const shifted = new Date(timestamp - SESSION_ROLLOVER_HOURS * 60 * 60 * 1000);
+  return shifted.toLocaleDateString('en-CA');
 }
 
 /**
  * Find the most relevant bedtime occurrence relative to now.
  *
- * If you're within 4 hours after bedtime (stayed up late / crossed midnight),
- * uses that recent bedtime. Otherwise uses the next upcoming one.
+ * A bedtime that already passed still counts as "tonight's" for as long as
+ * we're inside the same drinking session (sessions roll over at 5 AM).
+ * Someone still drinking at 3:30 AM past a 23:00 bedtime must be scored
+ * against tonight — not against tomorrow night's bedtime, which would
+ * make everything look "safe". Otherwise use the next upcoming bedtime.
  */
 function nextBedtime(bedtime: string): number {
   const [h, m] = bedtime.split(':').map(Number);
   const now = Date.now();
-  const fourHoursMs = 4 * 60 * 60 * 1000;
 
   // Generate yesterday, today, and tomorrow's bedtime
   const base = new Date(now);
@@ -145,10 +146,10 @@ function nextBedtime(bedtime: string): number {
     candidates.push(bed.getTime());
   }
 
-  // Priority 1: recently-passed bedtime (within 4h) — you stayed up past it
+  // Priority 1: a passed bedtime within the current session — you stayed up
   for (let i = candidates.length - 1; i >= 0; i--) {
     const ts = candidates[i];
-    if (ts <= now && now - ts <= fourHoursMs) return ts;
+    if (ts <= now && sessionDateKey(ts) === sessionDateKey(now)) return ts;
   }
 
   // Priority 2: nearest upcoming bedtime
@@ -170,6 +171,11 @@ function lowImpactBACThreshold(sex: 'male' | 'female'): number {
 
 /**
  * Find when BAC drops to a given threshold (binary search).
+ *
+ * Search bounds are anchored to the last drink, not to the current time,
+ * so repeated calls return the same timestamp while drinks are unchanged.
+ * (Bounds anchored at a moving "now" made the result jitter by up to a
+ * minute per call, which caused downstream effects to re-fire constantly.)
  */
 function findBACThresholdTime(
   drinks: Drink[],
@@ -180,9 +186,11 @@ function findBACThresholdTime(
   const currentBAC = calculateBAC(drinks, profile, now);
   if (currentBAC <= threshold) return now;
 
-  const hoursToThreshold = (currentBAC - threshold) / ELIMINATION_RATE;
-  let low = now;
-  let high = now + (hoursToThreshold + 2) * 60 * 60 * 1000;
+  const lastDrinkTime = Math.max(...drinks.map((d) => d.timestamp));
+  const bacAtLastDrink = calculateBAC(drinks, profile, lastDrinkTime);
+  const hoursToThreshold = Math.max(0, bacAtLastDrink - threshold) / ELIMINATION_RATE;
+  let low = lastDrinkTime;
+  let high = lastDrinkTime + (hoursToThreshold + 2) * 60 * 60 * 1000;
 
   while (high - low > 60000) {
     const mid = (low + high) / 2;
@@ -269,6 +277,32 @@ export function calculateBACState(
     lowImpactAtTimestamp,
     timeToLowImpactMs,
   };
+}
+
+/**
+ * Estimate how many minutes of REM a past session likely cost.
+ *
+ * Reconstructs the night: sleep is assumed to start at the profile bedtime
+ * on that session day (a bedtime before the 5 AM rollover belongs to the
+ * next calendar day) or at the last drink, whichever came later. REM loss
+ * follows from the BAC still in the system at that moment.
+ */
+export function estimateRemReductionForSession(
+  drinks: Drink[],
+  profile: UserProfile,
+  sessionDate: string // YYYY-MM-DD session-day key
+): number {
+  if (drinks.length === 0) return 0;
+
+  const [y, mo, d] = sessionDate.split('-').map(Number);
+  const [h, m] = profile.bedtime.split(':').map(Number);
+  const bed = new Date(y, mo - 1, d, h, m, 0, 0);
+  if (h < SESSION_ROLLOVER_HOURS) bed.setDate(bed.getDate() + 1);
+
+  const lastDrink = Math.max(...drinks.map((dr) => dr.timestamp));
+  const sleepTime = Math.max(bed.getTime(), lastDrink);
+  const bacAtSleep = calculateBAC(drinks, profile, sleepTime);
+  return remImpact(effectiveDoseGPerKg(bacAtSleep, profile.sex)).minutes;
 }
 
 /**

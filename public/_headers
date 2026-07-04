@@ -6,6 +6,12 @@
 /
   Cache-Control: public, max-age=0, must-revalidate
 
+# Service worker and manifest must always revalidate so updates roll out
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
+
 # Security headers
 /*
   X-Content-Type-Options: nosniff

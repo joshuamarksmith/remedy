@@ -1,10 +1,11 @@
-import type { Drink, UserProfile, SleepRecord } from './bac';
+import { sessionDateKey, type Drink, type UserProfile, type SleepRecord } from './bac';
 
 const DRINKS_KEY = 'remedy_drinks';
 const PROFILE_KEY = 'remedy_profile';
 const SESSION_KEY = 'remedy_session_date';
 const ONBOARDED_KEY = 'remedy_onboarded';
 const SLEEP_KEY = 'remedy_sleep';
+const HISTORY_KEY = 'remedy_history';
 
 const DEFAULT_PROFILE: UserProfile = {
   weightKg: 75,
@@ -13,15 +14,12 @@ const DEFAULT_PROFILE: UserProfile = {
 };
 
 /**
- * Get the session date key. Uses local time with a 5 AM rollover —
+ * Get today's session date key. Uses the shared 5 AM rollover from bac.ts —
  * a drinking session that spans midnight still counts as one "day".
  * This prevents drinks from vanishing when the clock strikes 12.
  */
 function getSessionDateKey(): string {
-  const now = new Date();
-  // Subtract 5 hours so the "day" rolls over at 5 AM local, not midnight
-  const shifted = new Date(now.getTime() - 5 * 60 * 60 * 1000);
-  return shifted.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+  return sessionDateKey(Date.now());
 }
 
 /**
@@ -66,8 +64,7 @@ function archiveDrinks(): void {
     const drinks = JSON.parse(raw) as Drink[];
     if (drinks.length === 0) return;
 
-    const historyKey = 'remedy_history';
-    const history = JSON.parse(localStorage.getItem(historyKey) || '[]') as {
+    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]') as {
       date: string;
       drinks: Drink[];
     }[];
@@ -80,7 +77,7 @@ function archiveDrinks(): void {
       history.splice(0, history.length - 90);
     }
 
-    localStorage.setItem(historyKey, JSON.stringify(history));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
     localStorage.removeItem(DRINKS_KEY);
   } catch {
     // Silently fail on archive errors
@@ -157,7 +154,7 @@ export function resetApp(): void {
   localStorage.removeItem(PROFILE_KEY);
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(ONBOARDED_KEY);
-  localStorage.removeItem('remedy_history');
+  localStorage.removeItem(HISTORY_KEY);
   localStorage.removeItem(SLEEP_KEY);
 }
 
@@ -168,9 +165,7 @@ export function resetApp(): void {
  * Returns true if it was added to today's session (caller should reload drinks).
  */
 export function addHistoricalDrink(drink: Drink): boolean {
-  const drinkTs = new Date(drink.timestamp);
-  const shifted = new Date(drinkTs.getTime() - 5 * 60 * 60 * 1000);
-  const drinkDate = shifted.toLocaleDateString('en-CA');
+  const drinkDate = sessionDateKey(drink.timestamp);
   const today = getSessionDateKey();
 
   if (drinkDate === today) {
@@ -182,8 +177,7 @@ export function addHistoricalDrink(drink: Drink): boolean {
   }
 
   // Add to history archive
-  const historyKey = 'remedy_history';
-  const history = JSON.parse(localStorage.getItem(historyKey) || '[]') as {
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]') as {
     date: string;
     drinks: Drink[];
   }[];
@@ -201,6 +195,26 @@ export function addHistoricalDrink(drink: Drink): boolean {
     history.splice(0, history.length - 90);
   }
 
-  localStorage.setItem(historyKey, JSON.stringify(history));
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   return false;
+}
+
+/**
+ * Load the drinks for a given session date — the live session if it matches,
+ * otherwise the archived one from history. Returns [] when nothing is found.
+ */
+export function loadSessionDrinks(date: string): Drink[] {
+  try {
+    if (localStorage.getItem(SESSION_KEY) === date) {
+      const raw = localStorage.getItem(DRINKS_KEY);
+      return raw ? (JSON.parse(raw) as Drink[]) : [];
+    }
+    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]') as {
+      date: string;
+      drinks: Drink[];
+    }[];
+    return history.find((h) => h.date === date)?.drinks ?? [];
+  } catch {
+    return [];
+  }
 }

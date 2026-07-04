@@ -9,12 +9,14 @@ const SLIDES = [
     visual: (
       <div className="relative w-44 h-36 mx-auto flex items-center justify-center">
         <svg viewBox="0 0 160 120" className="w-full h-full">
-          {/* Moon */}
+          {/* Moon — crescent via mask; an arc-path crescent degenerates and
+              renders nothing */}
           <circle cx="80" cy="42" r="28" fill="#2dd4bf" opacity="0.15" />
-          <path
-            d="M68 18a24 24 0 1 0 0 48 20 20 0 0 1 0-48z"
-            fill="#2dd4bf" opacity="0.9"
-          />
+          <mask id="onboarding-crescent">
+            <circle cx="80" cy="42" r="22" fill="white" />
+            <circle cx="89" cy="33" r="19" fill="black" />
+          </mask>
+          <circle cx="80" cy="42" r="22" fill="#2dd4bf" opacity="0.9" mask="url(#onboarding-crescent)" />
           {/* Stars */}
           <circle cx="120" cy="22" r="1.5" fill="#94a3b8" opacity="0.7" className="animate-pulse" />
           <circle cx="38" cy="30" r="1" fill="#94a3b8" opacity="0.5" />

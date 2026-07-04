@@ -77,6 +77,15 @@ export async function scheduleREMClearNotification(atTimestamp: number): Promise
 }
 
 /**
+ * Reset notification state entirely: cancel anything scheduled and
+ * forget the user's preference. Used when the app resets to first-run.
+ */
+export function clearNotificationState(): void {
+  cancelREMClearNotification();
+  localStorage.removeItem(NOTIFICATION_KEY);
+}
+
+/**
  * Cancel any scheduled notification.
  */
 export function cancelREMClearNotification(): void {
