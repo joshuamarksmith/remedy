@@ -62,6 +62,16 @@ const TABS: { id: Tab; label: string }[] = [
 // Stable empty list — keeps memo/effect dependencies quiet when what-if is off
 const NO_HYPOTHETICAL_DRINKS: Drink[] = [];
 
+// Drink presets — typical pours mapped to standard-drink equivalents.
+// Users think in beers and glasses, not 14g units; showing the equivalence
+// on every button teaches the conversion over time.
+const DRINK_PRESETS: { label: string; std: number; desc: string }[] = [
+  { label: 'Beer', std: 1, desc: '12oz · 5%' },
+  { label: 'Wine', std: 1.2, desc: '6oz pour' },
+  { label: 'Cocktail', std: 1.5, desc: 'mixed drink' },
+  { label: 'Shot', std: 1, desc: '1.5oz liquor' },
+];
+
 function App() {
   const [showOnboarding, setShowOnboarding] = useState(() => !hasOnboarded());
   const [drinks, setDrinks] = useState<Drink[]>(() => loadDrinks());
@@ -329,16 +339,25 @@ function App() {
             </div>
 
             {/* Tonight's Sleep */}
-            <div className={`card p-4 text-center border transition-all duration-500 ${statusBorder}`}>
-              {bacState.sleepQuality === 'safe' ? (
+            <div className={`card p-4 text-center border transition-all duration-500 ${drinks.length === 0 ? 'border-border-glass' : statusBorder}`}>
+              {drinks.length === 0 ? (
+                <>
+                  <p className="text-lg font-semibold text-text-primary">
+                    Tonight&rsquo;s a clean slate
+                  </p>
+                  <p className="text-sm text-text-secondary mt-1">
+                    Log your first drink to start tracking tonight&rsquo;s impact.
+                  </p>
+                </>
+              ) : bacState.sleepQuality === 'safe' ? (
                 <>
                   <p className={`text-lg font-semibold transition-colors duration-500 ${statusColor}`}>
                     Your sleep is on track tonight
                   </p>
                   <p className="text-sm text-text-secondary mt-1">
                     {bacState.currentBAC >= 0.001
-                      ? 'You\u2019re still processing alcohol, but it won\u2019t noticeably affect your sleep quality.'
-                      : 'No alcohol in your system. Sleep well!'}
+                      ? 'Still clearing alcohol, but your sleep tonight should be fine.'
+                      : 'No alcohol left in your system. Sleep well!'}
                   </p>
                 </>
               ) : (() => {
@@ -377,14 +396,22 @@ function App() {
 
             {/* Add Drinks */}
             <div className="card p-4 space-y-3">
-              <button
-                onClick={() => addDrink(1)}
-                className={`w-full py-3 rounded-xl text-center press-bounce bg-accent-teal/10 border border-accent-teal/20 hover:border-accent-teal/40 ${
-                  drinkPulse ? 'ring-2 ring-accent-teal/30 animate-drink-pop' : ''
-                }`}
-              >
-                <span className="text-lg font-medium text-accent-teal">+ 1 Standard Drink</span>
-              </button>
+              <div className={`grid grid-cols-2 gap-2 ${drinkPulse ? 'animate-drink-pop' : ''}`}>
+                {DRINK_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => addDrink(preset.std)}
+                    className="py-3 rounded-xl text-center press-bounce bg-accent-teal/10 border border-accent-teal/20 hover:border-accent-teal/40"
+                  >
+                    <span className="block text-base font-medium text-accent-teal">
+                      + {preset.label}
+                    </span>
+                    <span className="block text-[11px] text-text-muted mt-0.5">
+                      {preset.desc} = {formatDrinkCount(preset.std)} std
+                    </span>
+                  </button>
+                ))}
+              </div>
 
               <div className="flex items-center gap-2">
                 <input
@@ -393,7 +420,7 @@ function App() {
                   step="0.5"
                   min="0.1"
                   max="10"
-                  placeholder="e.g. 1.5"
+                  placeholder="custom, e.g. 1.5"
                   value={customAmount}
                   onChange={(e) => setCustomAmount(e.target.value)}
                   className="flex-1 bg-white/5 border border-border-glass rounded-xl px-3 py-2.5 text-text-primary outline-none focus:border-accent-teal/50 text-center text-lg placeholder:text-text-muted/50"
@@ -414,7 +441,8 @@ function App() {
               </div>
 
               <p className="text-[11px] text-text-muted leading-relaxed">
-                1 standard drink = 12oz beer · 5oz wine · 1.5oz liquor
+                Presets are typical pours. Strong drinks count for more: a craft IPA or
+                a double is ~1.5 to 2. Custom accepts 0.1 to 10 standard drinks.
               </p>
             </div>
 
@@ -549,7 +577,7 @@ function App() {
                       onClick={() => setShowResetConfirm(true)}
                       className="text-sm text-text-muted hover:text-accent-red transition-colors"
                     >
-                      Reset session
+                      Clear tonight&rsquo;s drinks
                     </button>
                   )}
                 </div>
