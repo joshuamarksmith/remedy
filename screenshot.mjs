@@ -1,11 +1,16 @@
 import { chromium } from 'playwright';
+import { existsSync } from 'node:fs';
 
 const VIEWPORT_WIDTH = 390;
 const CLIP_HEIGHT = 844; // iPhone 14/15/16 ratio (19.5:9)
 
-const browser = await chromium.launch({
-  executablePath: '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome',
-});
+// Prefer CHROMIUM_PATH, then the shared container binary, then let
+// Playwright resolve its own managed browser (local `playwright install`).
+const executablePath =
+  process.env.CHROMIUM_PATH ??
+  (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+
+const browser = await chromium.launch({ executablePath });
 const context = await browser.newContext({
   viewport: { width: VIEWPORT_WIDTH, height: 844 },
   deviceScaleFactor: 2,
@@ -55,11 +60,12 @@ await page.waitForTimeout(500);
 // Screenshot empty home
 await page.screenshot({ path: 'assets/screenshot-home.png', clip });
 
-// Add 3 standard drinks
-for (let i = 0; i < 3; i++) {
-  await page.click('text=+ 1 Standard Drink');
-  await page.waitForTimeout(400);
-}
+// Add drinks via the presets: two beers and a cocktail
+await page.click('button:has-text("+ Beer")');
+await page.waitForTimeout(400);
+await page.click('button:has-text("+ Beer")');
+await page.waitForTimeout(400);
+await page.click('button:has-text("+ Cocktail")');
 await page.waitForTimeout(1000);
 
 // Add a custom 1.5 drink
@@ -72,8 +78,7 @@ await page.waitForTimeout(1500);
 await page.screenshot({ path: 'assets/screenshot-with-drinks.png', clip });
 
 // Toggle what-if mode
-const toggle = page.locator('button').filter({ has: page.locator('div.rounded-full') });
-await toggle.first().click();
+await page.locator('button.w-12').first().click();
 await page.waitForTimeout(1000);
 await page.screenshot({ path: 'assets/screenshot-whatif.png', clip });
 

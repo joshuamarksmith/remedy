@@ -12,6 +12,10 @@ export const DrinkLog = memo(function DrinkLog({ drinks, onRemove }: DrinkLogPro
     () => [...drinks].sort((a, b) => b.timestamp - a.timestamp),
     [drinks]
   );
+  const totalStandard = useMemo(
+    () => drinks.reduce((sum, d) => sum + d.standardDrinks, 0),
+    [drinks]
+  );
 
   if (drinks.length === 0) {
     return (
@@ -28,7 +32,7 @@ export const DrinkLog = memo(function DrinkLog({ drinks, onRemove }: DrinkLogPro
   return (
     <div className="stagger-children space-y-2 py-2">
       <h2 className="text-sm font-medium text-text-secondary mb-3">
-        Today's drinks ({drinks.length})
+        Today's drinks · {formatDrinkCount(totalStandard)} standard
       </h2>
       {sorted.map((drink) => (
         <div key={drink.id} className="card p-3 flex items-center justify-between press-bounce">

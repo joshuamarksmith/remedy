@@ -21,7 +21,7 @@ If you are concerned about your alcohol consumption, please consult a healthcare
 
 ## What it does
 
-- **Log drinks** and see real-time BAC, REM impact, and a countdown to REM-safe sleep
+- **Log drinks** with beer/wine/cocktail/shot presets (or a custom amount) and see real-time BAC, REM impact, and a countdown to REM-safe sleep
 - **"What if I have one more?"** — toggle a hypothetical drink to preview the impact
 - **BAC curve chart** with color-coded REM zones and a timeline of milestones
 
